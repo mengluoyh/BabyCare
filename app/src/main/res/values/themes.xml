@@ -1,1 +1,7 @@
-
+<!-- BabyCare/app/src/main/res/values/themes.xml -->
+<resources>
+    <style name="Theme.BabyCare" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#e07a5f</item>
+        <item name="colorOnPrimary">#ffffff</item>
+    </style>
+</resources>
