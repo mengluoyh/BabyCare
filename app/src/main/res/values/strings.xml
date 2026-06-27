@@ -1,4 +1,4 @@
-<!-- BabyCare/app/src/main/res/values/strings.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">宝宝护理助手</string>
+    <string name="app_name">BabyCare</string>
 </resources>
