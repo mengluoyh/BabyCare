@@ -1,9 +1,9 @@
 // app build.gradle.kts
 // BabyCare/app/build.gradle.kts
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    kotlin("kapt")
+    id("com.android.application") version "8.2.0"
+    id("org.jetbrains.kotlin.android") version "1.9.21"
+    kotlin("kapt") version "1.9.21"
 }
 
 android {
