@@ -1,28 +1,19 @@
-<!-- BabyCare/app/src/main/res/layout/fragment_feeding_records.xml -->
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <Button
-        android:id="@+id/btn_export"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="导出记录"
-        android:layout_gravity="end" />
-
+        android:text="📋 喂奶记录"
+        android:textSize="20sp"
+        android:textStyle="bold" />
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view"
+        android:id="@+id/rv_feeding_records"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <TextView
-        android:id="@+id/empty_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="暂无喂奶记录"
-        android:gravity="center"
-        android:visibility="gone" />
+        android:layout_weight="1"
+        android:layout_marginTop="12dp" />
 </LinearLayout>
