@@ -3,20 +3,36 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground">
+
     <TextView
-        android:id="@+id/tv_record_type"
+        android:id="@+id/tvTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textSize="14sp"
         android:textStyle="bold" />
+
     <TextView
-        android:id="@+id/tv_record_time"
+        android:id="@+id/tvDetail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="12sp" />
+        android:textSize="14sp"
+        android:layout_marginTop="4dp" />
+
     <TextView
-        android:id="@+id/tv_record_detail"
+        android:id="@+id/tvInterval"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="12sp" />
+        android:textSize="12sp"
+        android:layout_marginTop="4dp" />
+
+    <Button
+        android:id="@+id/btnDelete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="删除"
+        android:layout_gravity="end"
+        style="@style/Widget.Material3.Button.TextButton" />
+
 </LinearLayout>
