@@ -64,6 +64,17 @@
             android:gravity="center"
             android:layout_marginTop="8dp" />
 
+        <TextView
+            android:id="@+id/tv_estimated_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="#FF6B35"
+            android:layout_marginTop="4dp" />
+
         <Button
             android:id="@+id/btn_pause"
             android:layout_width="match_parent"
