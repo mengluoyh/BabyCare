@@ -36,14 +36,21 @@ object AudioPlayer {
         maxDurationMs: Long,
         onComplete: () -> Unit
     ): MediaPlayer? {
-        val mp = play(context, customPath, onComplete)
+        var completed = false
+        val wrappedComplete = {
+            if (!completed) {
+                completed = true
+                onComplete()
+            }
+        }
+        val mp = play(context, customPath, wrappedComplete)
         if (mp != null && maxDurationMs > 0) {
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     if (mp.isPlaying) {
                         mp.stop()
                         mp.release()
-                        onComplete()
+                        wrappedComplete()
                     }
                 } catch (_: Exception) {}
             }, maxDurationMs)
