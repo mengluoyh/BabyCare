@@ -6,18 +6,24 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
+import com.babycare.data.ExcreteRecord
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.service.AlarmScheduler
 import com.babycare.util.AudioPlayer
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
@@ -28,10 +34,15 @@ class TimerFragment : Fragment() {
     private var remainingOnPause: Long = 0
     private var intervalMinutes: Int = 180
     private var mediaPlayer: MediaPlayer? = null
+    private var alertDialog: AlertDialog? = null
+    private val handler = Handler(Looper.getMainLooper())
     private val settings by lazy { SettingsManager(requireContext()) }
     private val alarmScheduler by lazy { AlarmScheduler(requireContext()) }
     private val feedingDao by lazy {
         (requireActivity().application as BabyCareApp).database.feedingDao()
+    }
+    private val excreteDao by lazy {
+        (requireActivity().application as BabyCareApp).database.excreteDao()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -85,7 +96,7 @@ class TimerFragment : Fragment() {
             binding.etVolume.text?.clear()
         }
 
-        binding.btnStopAudio.setOnClickListener { stopAudio() }
+        binding.btnStopAudio.setOnClickListener { cancelAlert() }
 
         binding.rbBreast.setOnCheckedChangeListener { _, checked ->
             if (checked) {
@@ -120,6 +131,7 @@ class TimerFragment : Fragment() {
             timerFinished()
             return
         }
+        updateEstimatedTime(remaining)
         countDownTimer = object : CountDownTimer(remaining, 200) {
             override fun onTick(millisUntilFinished: Long) {
                 updateDisplay(millisUntilFinished)
@@ -136,6 +148,18 @@ class TimerFragment : Fragment() {
         val m = (remaining % 3_600_000) / 60_000
         val s = (remaining % 60_000) / 1_000
         binding.tvCountdown.text = String.format("%02d:%02d:%02d", h, m, s)
+        updateEstimatedTime(remaining)
+    }
+
+    /** 更新预计喂奶时间 */
+    private fun updateEstimatedTime(remainingMs: Long) {
+        if (remainingMs <= 0) {
+            binding.tvEstimatedTime.text = ""
+            return
+        }
+        val estimatedClock = System.currentTimeMillis() + remainingMs
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        binding.tvEstimatedTime.text = "预计 ${sdf.format(Date(estimatedClock))} 可以喂奶"
     }
 
     private fun timerFinished() {
@@ -145,6 +169,7 @@ class TimerFragment : Fragment() {
         alarmScheduler.cancelAlarm()
         binding.btnPause.isEnabled = false
         binding.tvCountdownLabel.text = "⏰ 倒计时已结束，点击「设置并开始」重新计时"
+        binding.tvEstimatedTime.text = ""
         updateDisplay(0)
         triggerAlert()
         saveFeedingRecord("auto", "formula", null)
@@ -187,6 +212,7 @@ class TimerFragment : Fragment() {
         binding.btnPause.text = "⏸️ 暂停"
         binding.btnPause.isEnabled = false
         binding.tvCountdownLabel.text = "已清零，请重新设置间隔"
+        binding.tvEstimatedTime.text = ""
         updateDisplay(0)
     }
 
@@ -200,33 +226,48 @@ class TimerFragment : Fragment() {
         vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
 
         val audioPath = settings.getCustomAudioPath()
-        mediaPlayer = AudioPlayer.play(requireContext(), audioPath) { stopAudio() }
+        mediaPlayer = AudioPlayer.playWithTimeout(requireContext(), audioPath, 30_000L) {
+            // 30秒超时或播放完成 → 自动关闭
+            handler.post { dismissAlert() }
+        }
 
+        binding.audioControlBar.visibility = View.VISIBLE
         showAlertDialog()
     }
 
     private fun showAlertDialog() {
-        AlertDialog.Builder(requireContext())
+        alertDialog = AlertDialog.Builder(requireContext())
             .setTitle("🍼 喂奶时间到！")
             .setMessage("宝宝该喂奶了")
             .setCancelable(false)
-            .setPositiveButton("我知道了") { dialog, _ ->
-                dialog.dismiss()
-                cancelAlert()
-            }
-            .show()
+            .setPositiveButton("我知道了") { _, _ -> cancelAlert() }
+            .create()
+        alertDialog?.show()
     }
 
     private fun cancelAlert() {
+        dismissAlert()
+    }
+
+    /** 关闭弹窗、停止音频振动、隐藏控制栏 */
+    private fun dismissAlert() {
+        handler.removeCallbacksAndMessages(null)
+        alertDialog?.dismiss()
+        alertDialog = null
         stopAudio()
-        val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-        vibrator.cancel()
+        try {
+            val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            vibrator.cancel()
+        } catch (_: Exception) {}
+        binding.audioControlBar.visibility = View.GONE
     }
 
     private fun stopAudio() {
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {}
         mediaPlayer?.release()
         mediaPlayer = null
-        binding.audioControlBar.visibility = View.GONE
     }
 
     private fun restoreState() {
@@ -253,7 +294,11 @@ class TimerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        handler.removeCallbacksAndMessages(null)
         cancelTimer()
+        stopAudio()
+        alertDialog?.dismiss()
+        alertDialog = null
         _binding = null
     }
 }

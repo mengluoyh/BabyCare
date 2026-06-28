@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/ExcreteRecordsFragment.kt
 package com.babycare.ui
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -46,6 +47,9 @@ class ExcreteRecordsFragment : Fragment() {
 
         binding.btnExport.setOnClickListener { exportRecords() }
 
+        binding.btnBowel.setOnClickListener { showBowelDialog() }
+        binding.btnPee.setOnClickListener { addPeeRecord() }
+
         lifecycleScope.launch {
             excreteDao.getAll().collect { records ->
                 adapter.submitList(records)
@@ -74,6 +78,40 @@ class ExcreteRecordsFragment : Fragment() {
             } else {
                 Toast.makeText(requireContext(), "导出失败", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun showBowelDialog() {
+        val options = arrayOf("🟤 正常", "🟡 稀便", "🟠 干硬")
+        val states = arrayOf("normal", "loose", "hard")
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择大便状态")
+            .setItems(options) { _, which ->
+                addExcreteRecord("bowel", states[which])
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun addPeeRecord() {
+        addExcreteRecord("pee", null)
+    }
+
+    private fun addExcreteRecord(type: String, state: String?) {
+        lifecycleScope.launch {
+            val latest = excreteDao.getLatest()
+            val now = System.currentTimeMillis()
+            val diff = latest?.let { now - it.timestamp }
+            val record = ExcreteRecord(
+                type = type,
+                state = state,
+                note = null,
+                timestamp = now,
+                diff = diff
+            )
+            excreteDao.insert(record)
+            val label = if (type == "pee") "排尿" else "排便"
+            Toast.makeText(requireContext(), "已记录$label", Toast.LENGTH_SHORT).show()
         }
     }
 
