@@ -57,4 +57,39 @@ object AudioPlayer {
         }
         return mp
     }
+
+    /** 循环播放音频，maxDurationMs 毫秒后自动停止。通过传入的 handler 调度，调用方可通过 handler.removeCallbacks 取消超时 */
+    fun playLooping(
+        context: Context,
+        customPath: String?,
+        maxDurationMs: Long,
+        handler: Handler,
+        onTimeout: () -> Unit
+    ): MediaPlayer? {
+        return try {
+            val mp = if (customPath != null && File(customPath).exists()) {
+                MediaPlayer().apply { setDataSource(customPath); prepare() }
+            } else {
+                MediaPlayer.create(context, R.raw.alarm)
+            }
+            mp?.apply {
+                isLooping = true
+                start()
+            }
+            if (mp != null && maxDurationMs > 0) {
+                handler.postDelayed({
+                    try {
+                        if (mp.isPlaying) {
+                            mp.stop()
+                            mp.release()
+                        }
+                    } catch (_: Exception) {}
+                    onTimeout()
+                }, maxDurationMs)
+            }
+            mp
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
