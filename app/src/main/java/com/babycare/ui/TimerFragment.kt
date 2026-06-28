@@ -230,9 +230,9 @@ class TimerFragment : Fragment() {
         vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
 
         val audioPath = settings.getCustomAudioPath()
-        mediaPlayer = AudioPlayer.playWithTimeout(requireContext(), audioPath, 30_000L) {
-            // 30秒超时或播放完成 → 自动关闭
-            handler.post { dismissAlert() }
+        // 循环播放，最大1分钟。手动点弹窗「我知道了」或 btnStopAudio，或者1分钟超时后自动停止
+        mediaPlayer = AudioPlayer.playLooping(requireContext(), audioPath, 60_000L, handler) {
+            dismissAlert()
         }
 
         binding.audioControlBar.visibility = View.VISIBLE
