@@ -1,0 +1,52 @@
+name: Build Android APK
+
+on:
+  # 🌟 核心：允许在 GitHub 网页的 Actions 页面手动点击 "Run workflow" 按钮触发
+  workflow_dispatch:
+  
+  # 自动触发：当代码推送到 main 或 master 分支时
+  push:
+    branches:
+      - main
+      - master
+      
+  # 自动触发：当有指向 main 或 master 的 Pull Request 时
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest # 使用 GitHub 提供的最新 Ubuntu 云服务器
+
+    steps:
+      # 1. 下载你的项目代码到云服务器
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 配置 Java 17 环境 (现代 Android 项目必须使用 JDK 17)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle # 开启 Gradle 缓存，第二次以后的构建速度会大幅提升
+
+      # 3. 赋予 Gradle 包装器执行权限 (Linux 环境必须)
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 4. 执行打包命令 (生成 Debug 版 APK)
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
+
+      # 5. 将打包好的 APK 上传到 GitHub 供你下载
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7 # 设置保留 7 天，避免长期占用 GitHub 免费存储空间
+          if-no-files-found: error # 如果没找到 APK 则报错，方便排查问题

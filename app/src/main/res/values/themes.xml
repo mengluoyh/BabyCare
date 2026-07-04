@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+      使用 Android 系统原生的无 ActionBar 主题。
+      这不需要引入额外的 Material 库，且完美适配 Jetpack Compose。
+    -->
+    <style name="Theme.BabyCare" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

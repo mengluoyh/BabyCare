@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- bottom_nav_menu.xml -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_timer"
+        android:title="计时"
+        android:icon="@drawable/ic_timer" />
+    <item
+        android:id="@+id/nav_feeding"
+        android:title="喂奶记录"
+        android:icon="@drawable/ic_feeding" />
+    <item
+        android:id="@+id/nav_excrete"
+        android:title="排泄记录"
+        android:icon="@drawable/ic_excrete" />
+</menu>
