@@ -89,10 +89,10 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- 近7日趋势图卡片 -->
+    <!-- 趋势图卡片 -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="150dp"
+        android:layout_height="180dp"
         android:layout_marginTop="8dp"
         app:cardElevation="2dp"
         app:strokeWidth="0dp"
@@ -103,13 +103,44 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="  近7日喂养趋势"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/on_background" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="  喂养趋势"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+
+                <RadioGroup
+                    android:id="@+id/rgChartDays"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <RadioButton
+                        android:id="@+id/rbChart7d"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="7天"
+                        android:checked="true" />
+                    <RadioButton
+                        android:id="@+id/rbChart15d"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="15天" />
+                    <RadioButton
+                        android:id="@+id/rbChart30d"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1个月" />
+                </RadioGroup>
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/layoutChart"
@@ -145,6 +176,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="📤 导出记录"
+        style="@style/Widget.Material3.Button.OutlinedButton" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnImport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="📥 导入记录"
         style="@style/Widget.Material3.Button.OutlinedButton" />
 
 </LinearLayout>

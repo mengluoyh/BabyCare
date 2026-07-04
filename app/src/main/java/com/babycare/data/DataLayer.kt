@@ -67,6 +67,9 @@ interface FeedingDao {
     @Insert
     suspend fun insert(record: FeedingRecord)
 
+    @Insert
+    suspend fun insertAll(records: List<FeedingRecord>)
+
     @Delete
     suspend fun delete(record: FeedingRecord)
 
@@ -91,8 +94,17 @@ interface ExcreteDao {
     @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'pee' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getPeeCountBetween(start: Long, end: Long): Int
 
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'bowel' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
+    suspend fun getDailyBowelCountsBetween(start: Long, end: Long): List<Int>
+
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'pee' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
+    suspend fun getDailyPeeCountsBetween(start: Long, end: Long): List<Int>
+
     @Insert
     suspend fun insert(record: ExcreteRecord)
+
+    @Insert
+    suspend fun insertAll(records: List<ExcreteRecord>)
 
     @Delete
     suspend fun delete(record: ExcreteRecord)

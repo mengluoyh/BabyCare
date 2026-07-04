@@ -20,12 +20,22 @@ object AgeCalculator {
         return Triple(months, weeks, remainDays)
     }
 
-    /** 计算总天数 */
+    /** 计算总天数（从出生当天算第1天） */
     fun totalDays(birthDate: Long): Int {
         val birth = Calendar.getInstance().apply { timeInMillis = birthDate }
         val now = Calendar.getInstance()
+        // 将时间归零到当天00:00，精确计算天数差
+        birth.set(Calendar.HOUR_OF_DAY, 0)
+        birth.set(Calendar.MINUTE, 0)
+        birth.set(Calendar.SECOND, 0)
+        birth.set(Calendar.MILLISECOND, 0)
+        now.set(Calendar.HOUR_OF_DAY, 0)
+        now.set(Calendar.MINUTE, 0)
+        now.set(Calendar.SECOND, 0)
+        now.set(Calendar.MILLISECOND, 0)
         val diff = now.timeInMillis - birth.timeInMillis
-        return (diff / (24 * 60 * 60 * 1000L)).toInt()
+        val days = (diff / (24 * 60 * 60 * 1000L)).toInt()
+        return days + 1 // 含当天（出生日算第1天）
     }
 
     /** 获取当日 00:00 到 23:59:59 的时间戳范围 */

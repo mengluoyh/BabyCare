@@ -13,4 +13,8 @@
         android:id="@+id/nav_excrete"
         android:title="排泄记录"
         android:icon="@drawable/ic_excrete" />
+    <item
+        android:id="@+id/nav_settings"
+        android:title="设置"
+        android:icon="@drawable/ic_settings" />
 </menu>
