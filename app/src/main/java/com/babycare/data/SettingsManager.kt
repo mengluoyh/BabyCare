@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/example/babycare/data/SettingsManager.kt
+// BabyCare/app/src/main/java/com/babycare/data/SettingsManager.kt
 package com.babycare.data
 
 import android.content.Context
@@ -30,4 +30,24 @@ class SettingsManager(context: Context) {
     // 年龄显示单位: "day", "week", "month"
     fun getAgeUnit(): String = prefs.getString("age_unit", "day") ?: "day"
     fun saveAgeUnit(unit: String) = prefs.edit().putString("age_unit", unit).apply()
+
+    // ─── 主题模式 ───
+    fun getThemeMode(): String = prefs.getString("theme_mode", "system") ?: "system"
+    fun saveThemeMode(mode: String) = prefs.edit().putString("theme_mode", mode).apply()
+
+    // ─── WebDAV ───
+    fun getWebDavUrl(): String = prefs.getString("webdav_url", "") ?: ""
+    fun saveWebDavUrl(url: String) = prefs.edit().putString("webdav_url", url).apply()
+
+    fun getWebDavUser(): String = prefs.getString("webdav_user", "") ?: ""
+    fun saveWebDavUser(user: String) = prefs.edit().putString("webdav_user", user).apply()
+
+    fun getWebDavPass(): String = prefs.getString("webdav_pass", "") ?: ""
+    fun saveWebDavPass(pass: String) = prefs.edit().putString("webdav_pass", pass).apply()
+
+    fun isWebDavAutoSync(): Boolean = prefs.getBoolean("webdav_auto_sync", false)
+    fun saveWebDavAutoSync(enabled: Boolean) = prefs.edit().putBoolean("webdav_auto_sync", enabled).apply()
+
+    fun getLastWebDavSyncTime(): Long = prefs.getLong("webdav_last_sync", 0L)
+    fun saveLastWebDavSyncTime(time: Long) = prefs.edit().putLong("webdav_last_sync", time).apply()
 }

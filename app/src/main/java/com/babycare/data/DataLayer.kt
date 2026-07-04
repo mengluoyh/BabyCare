@@ -14,6 +14,8 @@ data class BabyProfile(
     val name: String = "宝宝",
     val birthDate: Long = System.currentTimeMillis(),
     val isLocked: Boolean = false,
+    val weight: Float = 0f,        // 体重(kg)，0表示未设置
+    val weightLocked: Boolean = false,
     val customFormulaTarget: Int = 800,
     val formulaAgeUnit: String = "month" // "day" | "week" | "month"
 )
@@ -131,7 +133,7 @@ interface BabyDao {
 
 @Database(
     entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -150,13 +152,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // baby_profile新增weight和weightLocked列
+                db.execSQL("ALTER TABLE baby_profile ADD COLUMN weight REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE baby_profile ADD COLUMN weightLocked INTEGER NOT NULL DEFAULT 0")
+                android.util.Log.w("AppDatabase", "Migration 2->3: added weight/weightLocked")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

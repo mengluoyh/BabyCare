@@ -13,8 +13,8 @@ android {
         applicationId = "com.babycare"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1004
-        versionName = "1.0.0.4"
+        versionCode = 1005
+        versionName = "1.0.0.5"
     }
 
     buildFeatures {
@@ -74,4 +74,5 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.0")
     implementation("androidx.room:room-ktx:2.6.0")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

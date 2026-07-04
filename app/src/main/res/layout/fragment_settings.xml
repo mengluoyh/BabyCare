@@ -29,7 +29,7 @@
                 android:textColor="@color/on_background" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ─── 宝宝成长卡片 ─── -->
+        <!-- ─── WebDAV备份卡片 ─── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,114 +38,157 @@
             app:strokeWidth="0dp"
             app:contentPadding="16dp"
             app:cardCornerRadius="16dp">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="☁️ WebDAV 备份"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    <EditText
+                        android:id="@+id/etWebDavUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="WebDAV 地址"
+                        android:inputType="textUri"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="horizontal">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                        <EditText
+                            android:id="@+id/etWebDavUser"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="用户名"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                        <EditText
+                            android:id="@+id/etWebDavPass"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="密码"
+                            android:inputType="textPassword"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWebDavSave"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="保存配置"
+                    style="@style/Widget.Material3.Button.TextButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWebDavBackup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="☁️ 手动备份"
+                    android:layout_marginTop="4dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="👶 宝宝成长"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
+                        android:text="自动备份"
+                        android:textSize="14sp"
                         android:textColor="@color/on_background" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnEditBirth"
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchAutoSync"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="更改"
-                        android:enabled="false"
-                        style="@style/Widget.Material3.Button.TextButton" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnLockBirth"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔒 锁定"
-                        style="@style/Widget.Material3.Button.TextButton" />
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/tvSyncStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ─── 主题模式卡片 ─── -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            app:contentPadding="16dp"
+            app:cardCornerRadius="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎨 主题模式"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+                <RadioGroup
+                    android:id="@+id/rgThemeMode"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginTop="8dp">
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <RadioButton
+                        android:id="@+id/rbThemeSystem"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="出生日期："
-                        android:textSize="14sp"
-                        android:textColor="@color/on_surface_variant" />
-                    <TextView
-                        android:id="@+id/tvBirthDate"
-                        android:layout_width="wrap_content"
+                        android:layout_weight="1"
+                        android:text="系统" />
+                    <RadioButton
+                        android:id="@+id/rbThemeLight"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="未设置"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/warm_orange" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tvBabyAge"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="👶 当前宝宝已经 -- 天"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/secondary"
-                    android:layout_marginTop="8dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_weight="1"
+                        android:text="浅色" />
+                    <RadioButton
+                        android:id="@+id/rbThemeDark"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="显示单位："
-                        android:textSize="14sp"
-                        android:textColor="@color/on_surface_variant" />
-                    <RadioGroup
-                        android:id="@+id/rgAgeUnit"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-                        <RadioButton
-                            android:id="@+id/rbAgeDay"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="天" />
-                        <RadioButton
-                            android:id="@+id/rbAgeWeek"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="周" />
-                        <RadioButton
-                            android:id="@+id/rbAgeMonth"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="月" />
-                    </RadioGroup>
-                </LinearLayout>
+                        android:layout_weight="1"
+                        android:text="深色" />
+                </RadioGroup>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ─── 配方奶建议量（已移至计时页面） ─── -->
-
-        <!-- ─── APP图标卡片 ─── -->
+        <!-- ─── APP图标卡片（6色） ─── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -169,9 +212,11 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="选择启动图标样式（下次打开桌面生效）"
+                    android:text="选择启动图标样式（返回桌面即可查看）"
                     android:textSize="12sp"
                     android:textColor="@color/on_surface_variant" />
+
+                <!-- 第一行：橙/蓝 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -192,17 +237,60 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="🔵 蓝色"
-                        android:layout_marginHorizontal="4dp"
+                        android:layout_marginStart="4dp"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
+                </LinearLayout>
+
+                <!-- 第二行：粉/绿 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center">
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnIconPink"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="🩷 粉色"
+                        android:layout_marginEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnIconGreen"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟢 绿色"
                         android:layout_marginStart="4dp"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
                 </LinearLayout>
+
+                <!-- 第三行：紫/青 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnIconPurple"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟣 紫色"
+                        android:layout_marginEnd="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnIconTeal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🔷 青色"
+                        android:layout_marginStart="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/tvCurrentIcon"
                     android:layout_width="match_parent"

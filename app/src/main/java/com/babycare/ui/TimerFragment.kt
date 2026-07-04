@@ -52,18 +52,7 @@ class TimerFragment : Fragment() {
         binding.etInterval.setText(intervalMinutes.toString())
         setupUI()
         restoreState()
-        refreshStats()
         loadBabyProfile()
-    }
-
-    private fun refreshStats() {
-        lifecycleScope.launch {
-            val (todayStart, todayEnd) = AgeCalculator.getTodayRange()
-            val breast = feedingDao.getBreastCountBetween(todayStart, todayEnd)
-            val formula = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
-            binding.tvBreastCount.text = breast.toString()
-            binding.tvFormulaTotal.text = formula.toString()
-        }
     }
 
     private fun setupUI() {
@@ -157,7 +146,6 @@ class TimerFragment : Fragment() {
             )
             feedingDao.insert(record)
             Toast.makeText(requireContext(), "已记录${if (feedType == "breast") "母乳" else "配方奶"}喂养", Toast.LENGTH_SHORT).show()
-            refreshStats()
         }
     }
 

@@ -41,5 +41,8 @@
 
     <!-- Adaptive icon backgrounds -->
     <color name="icon_bg_blue">#FFE3F2FD</color>
-    <color name="icon_bg_pink">#FFE0F0</color>
+    <color name="icon_bg_pink">#FFF0E0</color>
+    <color name="icon_bg_green">#FFE8F5E9</color>
+    <color name="icon_bg_purple">#FFF3E5F5</color>
+    <color name="icon_bg_teal">#FFE0F2F1</color>
 </resources>

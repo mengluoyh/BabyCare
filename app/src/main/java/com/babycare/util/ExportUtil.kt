@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/example/babycare/util/ExportUtil.kt
+// BabyCare/app/src/main/java/com/babycare/util/ExportUtil.kt
 package com.babycare.util
 
 import android.content.Context
@@ -10,8 +10,8 @@ import java.io.FileNotFoundException
 object ExportUtil {
     fun exportToJson(context: Context, data: Any, filename: String): File? {
         return try {
-            // 优先存到Downloads/BabyCare/（更易访问）
-            val dir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "BabyCare")
+            // 存到 /storage/emulated/0/BabyCare/（更易访问）
+            val dir = File("/storage/emulated/0/BabyCare")
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, filename)
             file.writeText(Gson().toJson(data))

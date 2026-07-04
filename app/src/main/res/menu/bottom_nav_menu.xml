@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- bottom_nav_menu.xml -->
+<!-- bottom_nav_menu.xml — 底部导航（合并记录+宝宝成长Tab） -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_timer"
         android:title="计时"
         android:icon="@drawable/ic_timer" />
     <item
-        android:id="@+id/nav_feeding"
-        android:title="喂奶记录"
-        android:icon="@drawable/ic_feeding" />
+        android:id="@+id/nav_records"
+        android:title="记录"
+        android:icon="@drawable/ic_records" />
     <item
-        android:id="@+id/nav_excrete"
-        android:title="排泄记录"
-        android:icon="@drawable/ic_excrete" />
+        android:id="@+id/nav_baby_growth"
+        android:title="成长"
+        android:icon="@drawable/ic_baby" />
     <item
         android:id="@+id/nav_settings"
         android:title="设置"
