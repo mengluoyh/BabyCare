@@ -10,13 +10,23 @@ import java.io.FileNotFoundException
 object ExportUtil {
     fun exportToJson(context: Context, data: Any, filename: String): File? {
         return try {
-            val dir = File(context.getExternalFilesDir(null), "logs")
+            // 优先存到Downloads/BabyCare/（更易访问）
+            val dir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "BabyCare")
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, filename)
             file.writeText(Gson().toJson(data))
             file
         } catch (e: Exception) {
-            null
+            // 降级到app私有目录
+            try {
+                val dir = File(context.getExternalFilesDir(null), "logs")
+                if (!dir.exists()) dir.mkdirs()
+                val file = File(dir, filename)
+                file.writeText(Gson().toJson(data))
+                file
+            } catch (e2: Exception) {
+                null
+            }
         }
     }
 
