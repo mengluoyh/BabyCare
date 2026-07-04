@@ -11,5 +11,5 @@ local.properties
 /app/build
 .backup/
 .gradle/
-.git_push.sh
 expect_push.sh
+git_push.sh
