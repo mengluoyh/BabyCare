@@ -59,10 +59,10 @@ interface FeedingDao {
     suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
 
     @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
-    suspend fun getDailyFormulaLast7Days(): List<Int>
+    suspend fun getDailyFormulaLast7Days(start: Long, end: Long): List<Int>
 
     @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
-    suspend fun getDailyBreastCountLast7Days(): List<Int>
+    suspend fun getDailyBreastCountLast7Days(start: Long, end: Long): List<Int>
 
     @Insert
     suspend fun insert(record: FeedingRecord)
