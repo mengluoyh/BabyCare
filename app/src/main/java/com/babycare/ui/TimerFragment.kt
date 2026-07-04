@@ -100,7 +100,6 @@ class TimerFragment : Fragment() {
                 startCountdown()
             }
             binding.etVolume.text?.clear()
-            refreshStats()
         }
 
         binding.btnStopAudio.setOnClickListener { cancelAlert() }
