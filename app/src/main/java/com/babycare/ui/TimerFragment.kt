@@ -21,8 +21,6 @@ import com.babycare.service.AlarmScheduler
 import com.babycare.util.AgeCalculator
 import com.babycare.util.AudioPlayer
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
@@ -38,6 +36,8 @@ class TimerFragment : Fragment() {
     private val settings by lazy { SettingsManager(requireContext()) }
     private val alarmScheduler by lazy { AlarmScheduler(requireContext()) }
     private val feedingDao by lazy { (requireActivity().application as BabyCareApp).database.feedingDao() }
+    private val babyDao by lazy { (requireActivity().application as BabyCareApp).database.babyDao() }
+    private var birthDate: Long = 0
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
@@ -51,6 +51,7 @@ class TimerFragment : Fragment() {
         setupUI()
         restoreState()
         refreshStats()
+        loadBabyProfile()
     }
 
     private fun refreshStats() {
@@ -119,6 +120,23 @@ class TimerFragment : Fragment() {
         }
         binding.rbFormula.setOnCheckedChangeListener { _, checked ->
             if (checked) binding.etVolume.isEnabled = true
+        }
+
+        // 配方奶建议量保存
+        binding.btnSaveFormula.setOnClickListener {
+            val text = binding.etCustomFormula.text.toString()
+            val ml = text.toIntOrNull()
+            if (ml != null && ml > 0) {
+                settings.saveCustomFormulaSuggestion(ml)
+                Toast.makeText(requireContext(), "建议量已更新为 ${ml}ml", Toast.LENGTH_SHORT).show()
+                binding.etCustomFormula.text?.clear()
+                if (birthDate > 0) updateSuggestion()
+            } else {
+                settings.saveCustomFormulaSuggestion(0)
+                Toast.makeText(requireContext(), "已恢复默认建议量", Toast.LENGTH_SHORT).show()
+                binding.etCustomFormula.text?.clear()
+                if (birthDate > 0) updateSuggestion()
+            }
         }
     }
 
@@ -304,6 +322,28 @@ class TimerFragment : Fragment() {
         } else {
             binding.btnPause.isEnabled = false
         }
+    }
+
+    // ═══════════════════ 配方奶建议量 ═══════════════════
+
+    private fun loadBabyProfile() {
+        lifecycleScope.launch {
+            val profile = babyDao.getProfileSync()
+            if (profile != null && profile.birthDate > 0) {
+                birthDate = profile.birthDate
+                updateSuggestion()
+            } else {
+                binding.tvSuggestedFormula.text = "-- ml"
+            }
+        }
+    }
+
+    private fun updateSuggestion() {
+        if (birthDate <= 0) return
+        val (months, _, _) = AgeCalculator.calculateAge(birthDate)
+        val custom = settings.getCustomFormulaSuggestion()
+        val suggested = if (custom > 0) custom else AgeCalculator.getSuggestedFormula(months)
+        binding.tvSuggestedFormula.text = "${suggested} ml"
     }
 
     override fun onDestroyView() {

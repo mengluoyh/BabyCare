@@ -76,13 +76,6 @@ class SettingsFragment : Fragment() {
             else -> "当前宝宝已经 ${totalDays} 天"
         }
         binding.tvBabyAge.text = text
-        updateSuggestion(months)
-    }
-
-    private fun updateSuggestion(months: Int) {
-        val custom = settings.getCustomFormulaSuggestion()
-        val suggested = if (custom > 0) custom else AgeCalculator.getSuggestedFormula(months)
-        binding.tvSuggestedFormula.text = "${suggested} ml"
     }
 
     private fun setupUI() {
@@ -106,29 +99,6 @@ class SettingsFragment : Fragment() {
             }
             settings.saveAgeUnit(unit)
             updateAgeDisplay()
-        }
-
-        // 配方奶建议量
-        binding.btnSaveFormula.setOnClickListener {
-            val text = binding.etCustomFormula.text.toString()
-            val ml = text.toIntOrNull()
-            if (ml != null && ml > 0) {
-                settings.saveCustomFormulaSuggestion(ml)
-                Toast.makeText(requireContext(), "建议量已更新为 ${ml}ml", Toast.LENGTH_SHORT).show()
-                binding.etCustomFormula.text?.clear()
-                if (birthDate > 0) {
-                    val (months, _, _) = AgeCalculator.calculateAge(birthDate)
-                    updateSuggestion(months)
-                }
-            } else {
-                settings.saveCustomFormulaSuggestion(0)
-                Toast.makeText(requireContext(), "已恢复默认建议量", Toast.LENGTH_SHORT).show()
-                binding.etCustomFormula.text?.clear()
-                if (birthDate > 0) {
-                    val (months, _, _) = AgeCalculator.calculateAge(birthDate)
-                    updateSuggestion(months)
-                }
-            }
         }
 
         // 图标切换

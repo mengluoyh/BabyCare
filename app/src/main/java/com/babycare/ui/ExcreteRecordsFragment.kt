@@ -3,6 +3,7 @@ package com.babycare.ui
 
 import android.app.AlertDialog
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -115,11 +116,53 @@ class ExcreteRecordsFragment : Fragment() {
                 }
             }
 
-            binding.layoutChart.removeAllViews()
+            val chartContainer = binding.layoutChart
+            val columnsContainer = binding.chartColumns
+            columnsContainer.removeAllViews()
+            chartContainer.removeAllViews()
+            chartContainer.addView(columnsContainer)
+
             val maxVal = dailyData.values.maxOfOrNull { maxOf(it.first, it.second) } ?: 1
             val density = resources.displayMetrics.density
             val barWidth = (Math.max(8, 24 - chartDays)).toInt() * density.toInt()
-            val chartHeight = binding.layoutChart.height.coerceAtLeast(100)
+            val chartHeight = chartContainer.height.coerceAtLeast(100)
+            val barAreaHeight = (chartHeight * 0.75f).toInt()
+
+            // ─── 网格线 ───
+            val gridLevels = listOf(0.25f, 0.5f, 0.75f, 1.0f)
+            val gridContainer = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                gravity = android.view.Gravity.BOTTOM
+            }
+            for (level in gridLevels) {
+                val spacer = View(requireContext()).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f - level
+                    )
+                }
+                val line = View(requireContext()).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * density).toInt()
+                    )
+                    setBackgroundColor(0x15FFFFFF.toInt())
+                }
+                gridContainer.addView(spacer)
+                gridContainer.addView(line)
+            }
+            gridContainer.addView(View(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
+                )
+            })
+            chartContainer.addView(gridContainer, 0)
+
+            // ─── 柱状图 ───
+            val totalBowel = dailyData.values.sumOf { it.first }
+            val totalPee = dailyData.values.sumOf { it.second }
 
             for ((date, data) in dailyData) {
                 val (bowel, pee) = data
@@ -130,32 +173,80 @@ class ExcreteRecordsFragment : Fragment() {
                     setPadding(1, 0, 1, 0)
                 }
 
-                // 排便柱 (棕色)
+                // 排便柱 (棕色) — 放在下面
                 val barBowel = View(requireContext()).apply {
-                    val h = if (maxVal > 0) (bowel.toFloat() / maxVal * chartHeight * 0.6f).toInt() else 0
+                    val h = if (maxVal > 0) (bowel.toFloat() / maxVal * barAreaHeight).toInt() else 0
                     layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
-                    setBackgroundColor(0xFF795548.toInt())
+                    background = GradientDrawable().apply {
+                        setColor(0xFF795548.toInt())
+                        cornerRadius = 4f * density
+                    }
                 }
-                // 排尿柱 (蓝色)
+                // 排尿柱 (蓝色) — 放在上面
                 val barPee = View(requireContext()).apply {
-                    val h = if (maxVal > 0) (pee.toFloat() / maxVal * chartHeight * 0.6f).toInt() else 0
+                    val h = if (maxVal > 0) (pee.toFloat() / maxVal * barAreaHeight).toInt() else 0
                     layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
-                    setBackgroundColor(0xFF1976D2.toInt())
+                    background = GradientDrawable().apply {
+                        setColor(0xFF1976D2.toInt())
+                        cornerRadius = 4f * density
+                    }
                 }
 
-                val dateLabel = TextView(requireContext()).apply {
-                    val showLabel = if (chartDays > 15) {
-                        date.endsWith("/01") || date.endsWith("/15") || date == dailyData.keys.first() || date == dailyData.keys.last()
-                    } else true
-                    text = if (showLabel) date else ""
-                    textSize = 8f
-                    gravity = android.view.Gravity.CENTER
+                // 数值标签
+                if (bowel > 0) {
+                    val labelBowel = TextView(requireContext()).apply {
+                        text = bowel.toString()
+                        textSize = 8f
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(0xFF795548.toInt())
+                    }
+                    col.addView(labelBowel)
+                }
+                if (pee > 0) {
+                    val labelPee = TextView(requireContext()).apply {
+                        text = pee.toString()
+                        textSize = 8f
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(0xFF1976D2.toInt())
+                    }
+                    col.addView(labelPee)
                 }
 
                 col.addView(barBowel)
                 col.addView(barPee)
+
+                // 日期标签
+                val showLabel = if (chartDays > 15) {
+                    date.endsWith("/01") || date.endsWith("/15") ||
+                            date == dailyData.keys.first() || date == dailyData.keys.last()
+                } else true
+                val dateLabel = TextView(requireContext()).apply {
+                    text = if (showLabel) date else ""
+                    textSize = 7f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(0xAAFFFFFF.toInt())
+                }
                 col.addView(dateLabel)
-                binding.layoutChart.addView(col)
+
+                columnsContainer.addView(col)
+            }
+
+            // ─── 更新图例 ───
+            binding.tvChartLegend.text = "● 排便 $totalBowel 次    ■ 排尿 $totalPee 次"
+
+            // ─── 进场动画 ───
+            columnsContainer.post {
+                for (i in 0 until columnsContainer.childCount) {
+                    val col = columnsContainer.getChildAt(i) as? LinearLayout ?: continue
+                    for (j in 0 until col.childCount) {
+                        val v = col.getChildAt(j)
+                        if (v.height > 0) {
+                            v.pivotY = v.height.toFloat()
+                            v.scaleY = 0f
+                            v.animate().scaleY(1f).setDuration(300).startDelay = (i * 30).toLong()
+                        }
+                    }
+                }
             }
         }
     }

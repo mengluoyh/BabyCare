@@ -93,7 +93,7 @@
     <!-- 趋势图卡片 -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="150dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         app:cardElevation="2dp"
         app:strokeWidth="0dp"
@@ -101,7 +101,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <LinearLayout
@@ -143,15 +143,33 @@
                 </RadioGroup>
             </LinearLayout>
 
-            <LinearLayout
+            <!-- 图表区域：FrameLayout支持网格线叠加 -->
+            <FrameLayout
                 android:id="@+id/layoutChart"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal"
-                android:gravity="bottom"
-                android:padding="4dp"
-                android:layout_marginTop="4dp" />
+                android:layout_height="200dp"
+                android:layout_marginTop="4dp">
+
+                <!-- 柱状图容器 -->
+                <LinearLayout
+                    android:id="@+id/chartColumns"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="bottom"
+                    android:padding="4dp" />
+            </FrameLayout>
+
+            <!-- 图例 -->
+            <TextView
+                android:id="@+id/tvChartLegend"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:gravity="center"
+                android:text="● 排便(次)  ■ 排尿(次)"
+                android:textColor="@color/on_surface_variant"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
