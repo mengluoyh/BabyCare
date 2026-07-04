@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -116,7 +117,6 @@ class FeedingRecordsFragment : Fragment() {
             val barAreaHeight = (chartHeight * 0.75f).toInt() // 柱状图占75%高度，顶部留标签空间
 
             // ─── 网格线 ───
-            val gridColors = intArrayOf(0x0DFFFFFF.toInt(), 0x08FFFFFF.toInt(), 0x0DFFFFFF.toInt(), 0x08FFFFFF.toInt())
             val gridLevels = listOf(0.25f, 0.5f, 0.75f, 1.0f)
             val gridContainer = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
