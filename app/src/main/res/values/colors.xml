@@ -38,4 +38,8 @@
     <color name="baby_green">#B5EAD7</color>
     <!-- Warm orange -->
     <color name="warm_orange">#FF6B35</color>
+
+    <!-- Adaptive icon backgrounds -->
+    <color name="icon_bg_blue">#FFE3F2FD</color>
+    <color name="icon_bg_pink">#FFE0F0</color>
 </resources>
