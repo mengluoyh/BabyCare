@@ -3,14 +3,13 @@ package com.babycare.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Room
 import com.babycare.data.*
 import com.babycare.util.AgeCalculator
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class BabyViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = Room.databaseBuilder(application, AppDatabase::class.java, "baby-db").build()
+    private val db = AppDatabase.getInstance(application)
     private val dao = db.babyDao()
 
     val profile = dao.getProfile().stateIn(viewModelScope, SharingStarted.Lazily, null)
