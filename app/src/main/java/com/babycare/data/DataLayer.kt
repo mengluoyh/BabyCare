@@ -4,57 +4,39 @@ import android.content.Context
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
+// ─── 实体 ───────────────────────────────────────────────
+
 @Entity(tableName = "baby_profile")
 data class BabyProfile(
     @PrimaryKey val id: Int = 1,
     val name: String = "宝宝",
     val birthDate: Long = System.currentTimeMillis(),
     val isLocked: Boolean = false,
-    val customFormulaTarget: Int = 800 
+    val customFormulaTarget: Int = 800,
+    val formulaAgeUnit: String = "month" // "day" | "week" | "month"
 )
 
 @Entity(tableName = "feeding_records")
 data class FeedingRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Long,
-    val type: String,           // "auto" or "manual"
-    val feedType: String = "formula", // "breast" or "formula" (old fragments)
-    val volume: Int? = null,    // ml for formula (old fragments)
-    val amount: Int = 0,        // ml (Compose)
-    val duration: Int = 0,      // minutes (Compose)
-    val diff: Long? = null      // ms since last feeding (old fragments)
+    val type: String,         // "auto" or "manual"
+    val feedType: String,     // "breast" or "formula"
+    val volume: Int? = null,  // ml for formula
+    val diff: Long? = null    // ms since last feeding
 )
 
-@Entity(tableName = "excretion_records")
-data class ExcretionRecord(
+@Entity(tableName = "excrete_records")
+data class ExcreteRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Long,
-    val type: String,    
-    val note: String = ""
+    val type: String,          // "bowel" or "pee"
+    val state: String? = null, // "normal" | "loose" | "hard"
+    val note: String? = null,
+    val diff: Long? = null
 )
 
-// ── DAOs ──────────────────────────────────────────────
-
-@Dao
-interface BabyDao {
-    @Query("SELECT * FROM baby_profile WHERE id = 1")
-    fun getProfile(): Flow<BabyProfile?>
-
-    @Upsert
-    suspend fun upsertProfile(profile: BabyProfile)
-
-    @Query("SELECT * FROM feeding_records WHERE timestamp BETWEEN :start AND :end ORDER BY timestamp DESC")
-    fun getFeedings(start: Long, end: Long): Flow<List<FeedingRecord>>
-
-    @Query("SELECT * FROM excretion_records WHERE timestamp BETWEEN :start AND :end ORDER BY timestamp DESC")
-    fun getExcretions(start: Long, end: Long): Flow<List<ExcretionRecord>>
-
-    @Insert
-    suspend fun insertFeeding(record: FeedingRecord)
-
-    @Insert
-    suspend fun insertExcretion(record: ExcretionRecord)
-}
+// ─── DAO ────────────────────────────────────────────────
 
 @Dao
 interface FeedingDao {
@@ -63,6 +45,24 @@ interface FeedingDao {
 
     @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): FeedingRecord?
+
+    @Query("SELECT * FROM feeding_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    suspend fun getFeedingsBetween(start: Long, end: Long): List<FeedingRecord>
+
+    @Query("SELECT * FROM feeding_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    fun getFeedingsBetweenFlow(start: Long, end: Long): Flow<List<FeedingRecord>>
+
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getBreastCountBetween(start: Long, end: Long): Int
+
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
+
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    suspend fun getDailyFormulaLast7Days(): List<Int>
+
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    suspend fun getDailyBreastCountLast7Days(): List<Int>
 
     @Insert
     suspend fun insert(record: FeedingRecord)
@@ -82,6 +82,15 @@ interface ExcreteDao {
     @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): ExcreteRecord?
 
+    @Query("SELECT * FROM excrete_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    suspend fun getExcretesBetween(start: Long, end: Long): List<ExcreteRecord>
+
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'bowel' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getBowelCountBetween(start: Long, end: Long): Int
+
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'pee' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getPeeCountBetween(start: Long, end: Long): Int
+
     @Insert
     suspend fun insert(record: ExcreteRecord)
 
@@ -92,11 +101,23 @@ interface ExcreteDao {
     suspend fun deleteAll()
 }
 
-// ── Database ──────────────────────────────────────────
+@Dao
+interface BabyDao {
+    @Query("SELECT * FROM baby_profile WHERE id = 1")
+    fun getProfile(): Flow<BabyProfile?>
+
+    @Query("SELECT * FROM baby_profile WHERE id = 1")
+    suspend fun getProfileSync(): BabyProfile?
+
+    @Upsert
+    suspend fun upsertProfile(profile: BabyProfile)
+}
+
+// ─── Database ───────────────────────────────────────────
 
 @Database(
-    entities = [BabyProfile::class, FeedingRecord::class, ExcretionRecord::class, ExcreteRecord::class],
-    version = 1,
+    entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

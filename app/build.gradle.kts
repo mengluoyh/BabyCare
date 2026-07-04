@@ -1,7 +1,8 @@
+// app build.gradle.kts
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
+    kotlin("kapt")
 }
 
 android {
@@ -14,7 +15,10 @@ android {
         targetSdk = 34
         versionCode = 1002
         versionName = "1.0.0.2"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        viewBinding = true
     }
 
     buildTypes {
@@ -28,62 +32,45 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
+}
 
-    buildFeatures {
-        compose = true
-        // 🌟 核心修复 1：开启 ViewBinding，解决所有 Fragment 和 Adapter 的 databinding 报错
-        viewBinding = true 
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+// ─── 自定义APP图标：把 custom_icon/ 下的图片自动设置为启动图标 ───
+android.applicationVariants.all { variant ->
+    val copyCustomIcon by tasks.registering(Copy::class) {
+        description = "如果 custom_icon/ 下有图片，则用它替换默认启动图标"
+        val customIconDir = rootProject.projectDir.resolve("custom_icon")
+        val pngFiles = fileTree(customIconDir).matching { include("*.png", "*.jpg", "*.webp") }
+        from(customIconDir)
+        include("*.png", "*.jpg", "*.webp")
+        into(projectDir.resolve("src/main/res/drawable-nodpi"))
+        rename { _ -> "custom_app_icon.png" }
+        doLast {
+            if (pngFiles.isEmpty()) {
+                logger.info("ℹ️ 未在 custom_icon/ 目录中找到图片，使用默认图标")
+            } else {
+                logger.info("✅ 已使用 ${pngFiles.singleFile} 作为自定义APP图标")
+            }
         }
+    }
+    // 在 mergeResources 之前执行
+    variant.mergeResourcesProvider?.configure {
+        dependsOn(copyCustomIcon)
     }
 }
 
 dependencies {
-    implementation("com.google.android.material:material:1.11.0")
-
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
-    implementation(composeBom)
-    
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.10.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
-
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    
-    // 🌟 核心修复 2：添加 Gson 依赖，解决 ExportUtil.kt 报错
+    implementation("androidx.room:room-runtime:2.6.0")
+    kapt("androidx.room:room-compiler:2.6.0")
+    implementation("androidx.room:room-ktx:2.6.0")
     implementation("com.google.code.gson:gson:2.10.1")
-
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(composeBom)
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

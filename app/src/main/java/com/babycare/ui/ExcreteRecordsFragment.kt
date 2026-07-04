@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -14,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.babycare.BabyCareApp
 import com.babycare.data.ExcreteRecord
 import com.babycare.databinding.FragmentExcreteRecordsBinding
+import com.babycare.util.AgeCalculator
 import com.babycare.util.ExportUtil
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -46,7 +48,6 @@ class ExcreteRecordsFragment : Fragment() {
         binding.recyclerView.adapter = adapter
 
         binding.btnExport.setOnClickListener { exportRecords() }
-
         binding.btnBowel.setOnClickListener { showBowelDialog() }
         binding.btnPee.setOnClickListener { addPeeRecord() }
 
@@ -56,11 +57,24 @@ class ExcreteRecordsFragment : Fragment() {
                 binding.emptyView.visibility = if (records.isEmpty()) View.VISIBLE else View.GONE
             }
         }
+
+        refreshDailyStats()
+    }
+
+    private fun refreshDailyStats() {
+        lifecycleScope.launch {
+            val (start, end) = AgeCalculator.getTodayRange()
+            val bowel = excreteDao.getBowelCountBetween(start, end)
+            val pee = excreteDao.getPeeCountBetween(start, end)
+            binding.tvTodayBowel.text = bowel.toString()
+            binding.tvTodayPee.text = pee.toString()
+        }
     }
 
     private fun deleteRecord(record: ExcreteRecord) {
         lifecycleScope.launch {
             excreteDao.delete(record)
+            refreshDailyStats()
         }
     }
 
@@ -84,20 +98,39 @@ class ExcreteRecordsFragment : Fragment() {
     private fun showBowelDialog() {
         val options = arrayOf("🟤 正常", "🟡 稀便", "🟠 干硬")
         val states = arrayOf("normal", "loose", "hard")
+
+        val noteInput = EditText(requireContext()).apply {
+            hint = "备注（可选）"
+            setTextColor(resources.getColor(android.R.color.black, null))
+        }
+
         AlertDialog.Builder(requireContext())
             .setTitle("选择大便状态")
+            .setView(noteInput)
             .setItems(options) { _, which ->
-                addExcreteRecord("bowel", states[which])
+                addExcreteRecord("bowel", states[which], noteInput.text.toString().takeIf { it.isNotBlank() })
             }
             .setNegativeButton("取消", null)
             .show()
     }
 
     private fun addPeeRecord() {
-        addExcreteRecord("pee", null)
+        val noteInput = EditText(requireContext()).apply {
+            hint = "备注（可选）"
+            setTextColor(resources.getColor(android.R.color.black, null))
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("💧 排尿记录")
+            .setView(noteInput)
+            .setPositiveButton("确认") { _, _ ->
+                addExcreteRecord("pee", null, noteInput.text.toString().takeIf { it.isNotBlank() })
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
-    private fun addExcreteRecord(type: String, state: String?) {
+    private fun addExcreteRecord(type: String, state: String?, note: String?) {
         lifecycleScope.launch {
             val latest = excreteDao.getLatest()
             val now = System.currentTimeMillis()
@@ -105,13 +138,14 @@ class ExcreteRecordsFragment : Fragment() {
             val record = ExcreteRecord(
                 type = type,
                 state = state,
-                note = null,
+                note = note,
                 timestamp = now,
                 diff = diff
             )
             excreteDao.insert(record)
             val label = if (type == "pee") "排尿" else "排便"
             Toast.makeText(requireContext(), "已记录$label", Toast.LENGTH_SHORT).show()
+            refreshDailyStats()
         }
     }
 
@@ -120,7 +154,8 @@ class ExcreteRecordsFragment : Fragment() {
         _binding = null
     }
 
-    // 内部适配器
+    // ─── 适配器 ──────────────────────────────────────────
+
     inner class ExcreteAdapter(
         private val onDelete: (ExcreteRecord) -> Unit
     ) : RecyclerView.Adapter<ExcreteAdapter.ViewHolder>() {

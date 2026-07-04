@@ -1,4 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#FFF8E1</color>
+    <color name="ic_launcher_foreground">#FF6B35</color>
+
+    <!-- Baby-themed Material3 palette -->
+    <color name="primary">#FF6B35</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#FFDCC2</color>
+    <color name="on_primary_container">#331400</color>
+
+    <color name="secondary">#1976D2</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#CEE5FF</color>
+    <color name="on_secondary_container">#001D36</color>
+
+    <color name="tertiary">#7B61FF</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="tertiary_container">#EADEFF</color>
+    <color name="on_tertiary_container">#1D0064</color>
+
+    <color name="error">#BA1A1A</color>
+    <color name="on_error">#FFFFFF</color>
+
+    <color name="background">#FFF8F0</color>
+    <color name="on_background">#201A17</color>
+    <color name="surface">#FFF8F0</color>
+    <color name="on_surface">#201A17</color>
+    <color name="surface_variant">#F0DFD3</color>
+    <color name="on_surface_variant">#4F453B</color>
+    <color name="outline">#827468</color>
+
+    <!-- Baby blue -->
+    <color name="baby_blue">#B3D9FF</color>
+    <!-- Baby pink -->
+    <color name="baby_pink">#FFB3C1</color>
+    <!-- Baby green -->
+    <color name="baby_green">#B5EAD7</color>
+    <!-- Warm orange -->
+    <color name="warm_orange">#FF6B35</color>
 </resources>

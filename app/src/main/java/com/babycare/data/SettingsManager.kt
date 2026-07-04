@@ -8,6 +8,7 @@ class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("babycare_prefs", Context.MODE_PRIVATE)
 
+    // 定时喂奶间隔（分钟）
     fun getInterval(): Int = prefs.getInt("interval_minutes", 180)
     fun saveInterval(minutes: Int) = prefs.edit().putInt("interval_minutes", minutes).apply()
 
@@ -21,4 +22,12 @@ class SettingsManager(context: Context) {
     fun savePauseRemaining(ms: Long) = prefs.edit().putLong("pause_remaining", ms).apply()
     fun isPaused(): Boolean = prefs.getBoolean("is_paused", false)
     fun savePausedState(paused: Boolean) = prefs.edit().putBoolean("is_paused", paused).apply()
+
+    // 自定义配方奶建议量（覆盖默认值）
+    fun getCustomFormulaSuggestion(): Int = prefs.getInt("custom_formula_suggestion", 0)
+    fun saveCustomFormulaSuggestion(ml: Int) = prefs.edit().putInt("custom_formula_suggestion", ml).apply()
+
+    // 年龄显示单位: "day", "week", "month"
+    fun getAgeUnit(): String = prefs.getString("age_unit", "day") ?: "day"
+    fun saveAgeUnit(unit: String) = prefs.edit().putString("age_unit", unit).apply()
 }

@@ -1,6 +1,5 @@
-// Top-level build file
 plugins {
-    id("com.android.application") apply false
-    id("org.jetbrains.kotlin.android") apply false
-    id("com.google.devtools.ksp") apply false
+    id("com.android.application") version "8.2.0" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.21" apply false
+    kotlin("kapt") version "1.9.21" apply false
 }
