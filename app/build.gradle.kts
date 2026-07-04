@@ -56,9 +56,10 @@ android.applicationVariants.all { variant ->
         }
     }
     // 在 mergeResources 之前执行
-    variant.mergeResourcesProvider?.configure {
-        dependsOn(copyCustomIcon)
+    variant.mergeResourcesProvider?.let { provider ->
+        provider.configure { dependsOn(copyCustomIcon) }
     }
+    true // applicationVariants.all 要求返回 Boolean
 }
 
 dependencies {
