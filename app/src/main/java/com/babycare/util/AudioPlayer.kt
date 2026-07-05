@@ -1,4 +1,4 @@
- // BabyCare/app/src/main/java/com/example/babycare/util/AudioPlayer.kt
+// BabyCare/app/src/main/java/com/babycare/util/AudioPlayer.kt
 package com.babycare.util
 
 import android.content.Context
@@ -52,7 +52,9 @@ object AudioPlayer {
                         mp.release()
                         wrappedComplete()
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.w("AudioPlayer", "超时停止播放失败", e)
+                }
             }, maxDurationMs)
         }
         return mp
@@ -83,12 +85,15 @@ object AudioPlayer {
                             mp.stop()
                             mp.release()
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        android.util.Log.w("AudioPlayer", "超时停止循环播放失败", e)
+                    }
                     onTimeout()
                 }, maxDurationMs)
             }
             mp
         } catch (e: Exception) {
+            android.util.Log.w("AudioPlayer", "创建播放器失败", e)
             null
         }
     }

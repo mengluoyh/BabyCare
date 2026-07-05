@@ -74,8 +74,10 @@ class FeedingRecordsFragment : Fragment() {
             val (start, end) = AgeCalculator.getTodayRange()
             val breast = feedingDao.getBreastCountBetween(start, end)
             val formula = feedingDao.getFormulaTotalBetween(start, end)
+            val formulaCount = feedingDao.getFormulaCountBetween(start, end)
             binding.tvTodayBreastCount.text = breast.toString()
             binding.tvTodayFormulaAmount.text = formula.toString()
+            binding.tvTodayFormulaCount.text = formulaCount.toString()
         }
     }
 

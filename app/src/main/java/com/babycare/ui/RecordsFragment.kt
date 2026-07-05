@@ -38,9 +38,10 @@ class RecordsFragment : Fragment() {
     private fun openChildFragment(fragment: Fragment) {
         // 显示子容器
         binding.childFragmentContainer.visibility = View.VISIBLE
-        // 隐藏入口卡片
+        // 隐藏所有入口卡片
         binding.cardFeeding.visibility = View.GONE
         binding.cardExcrete.visibility = View.GONE
+        binding.cardCustomRecord.visibility = View.GONE
 
         childFragmentManager.beginTransaction()
             .replace(com.babycare.R.id.child_fragment_container, fragment)

@@ -59,6 +59,9 @@ interface FeedingDao {
     @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getBreastCountBetween(start: Long, end: Long): Int
 
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getFormulaCountBetween(start: Long, end: Long): Int
+
     @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
 

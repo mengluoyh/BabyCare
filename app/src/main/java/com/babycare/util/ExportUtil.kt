@@ -39,6 +39,7 @@ object ExportUtil {
             val type = object : TypeToken<List<T>>() {}.type
             Gson().fromJson<List<T>>(json, type)
         } catch (e: Exception) {
+            android.util.Log.w("ExportUtil", "导入JSON失败", e)
             null
         }
     }

@@ -166,21 +166,18 @@ class BabyGrowthFragment : Fragment() {
 
     private fun saveProfile() {
         lifecycleScope.launch {
-            if (currentProfile != null) {
-                babyDao.upsertProfile(currentProfile!!.copy(
-                    birthDate = birthDate,
-                    isLocked = birthLocked,
-                    weight = weight,
-                    weightLocked = weightLocked
-                ))
-            } else {
-                babyDao.upsertProfile(BabyProfile(
-                    birthDate = birthDate,
-                    isLocked = birthLocked,
-                    weight = weight,
-                    weightLocked = weightLocked
-                ))
-            }
+            val profile = currentProfile?.copy(
+                birthDate = birthDate,
+                isLocked = birthLocked,
+                weight = weight,
+                weightLocked = weightLocked
+            ) ?: BabyProfile(
+                birthDate = birthDate,
+                isLocked = birthLocked,
+                weight = weight,
+                weightLocked = weightLocked
+            )
+            babyDao.upsertProfile(profile)
             loadBabyProfile()
         }
     }

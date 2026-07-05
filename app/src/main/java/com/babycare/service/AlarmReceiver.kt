@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/example/babycare/service/AlarmReceiver.kt
+// BabyCare/app/src/main/java/com/babycare/service/AlarmReceiver.kt
 package com.babycare.service
 
 import android.app.NotificationChannel

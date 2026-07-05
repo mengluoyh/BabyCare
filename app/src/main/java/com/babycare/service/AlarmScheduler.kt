@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/example/babycare/service/AlarmScheduler.kt
+// BabyCare/app/src/main/java/com/babycare/service/AlarmScheduler.kt
 package com.babycare.service
 
 import android.app.AlarmManager

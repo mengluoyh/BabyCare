@@ -66,8 +66,8 @@ object BackupManager {
     private suspend fun fetchAllData(context: Context): BackupData {
         val db = (context.applicationContext as BabyCareApp).database
         return BackupData(
-            feedingRecords = db.feedingDao().getFeedingsBetween(0, Long.MAX_VALUE),
-            excreteRecords = db.excreteDao().getExcretesBetween(0, Long.MAX_VALUE),
+            feedingRecords = db.feedingDao().getAllSnapshot(),
+            excreteRecords = db.excreteDao().getAllSnapshot(),
             babyProfile = db.babyDao().getProfileSync(),
             backupTime = System.currentTimeMillis()
         )
