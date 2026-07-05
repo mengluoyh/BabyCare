@@ -280,18 +280,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun loadBabyProfile() {
-        viewModelScope.launch {
-            val profile = babyDao.getProfileSync()
-            if (profile != null && profile.birthDate > 0) {
-                birthDate = profile.birthDate
-                updateSuggestion()
-            } else {
-                updateState { copy(suggestedFormula = "-- ml") }
-            }
-        }
-    }
-
     private fun updateSuggestion() {
         if (birthDate <= 0) return
         val (months, _, _) = AgeCalculator.calculateAge(birthDate)
