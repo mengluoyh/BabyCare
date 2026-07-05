@@ -116,13 +116,14 @@ class FeedingRecordsFragment : Fragment() {
                 dailyData = dailyData,
                 chartDays = chartDays,
                 density = resources.displayMetrics.density,
-                barColor1 = 0xFF1976D2.toInt(),   // 母乳（底部，蓝色）← Pair.first = 母乳次数
-                barColor2 = 0xFFE65100.toInt(),   // 配方奶（顶部，橙色）← Pair.second = 配方奶量
+                barColor1 = 0xFF1976D2.toInt(),   // 母乳（左，蓝色）
+                barColor2 = 0xFFE65100.toInt(),   // 配方奶（右，橙色）
                 labelColor1 = 0xFF1976D2.toInt(),
                 labelColor2 = 0xFFE65100.toInt(),
                 legendFormat = "● 母乳 %d 次    ■ 配方奶 %d ml",
                 total1 = totalBreast,
-                total2 = totalFormula
+                total2 = totalFormula,
+                sideBySide = true
             ))
 
             binding.tvChartLegend.text = "● 母乳 $totalBreast 次    ■ 配方奶 $totalFormula ml"
@@ -140,11 +141,7 @@ class FeedingRecordsFragment : Fragment() {
     private fun exportRecords() {
         lifecycleScope.launch {
             val records = feedingDao.getAllSnapshot()
-            val file = ExportUtil.exportToJson(
-                requireContext(),
-                records,
-                "feeding_${System.currentTimeMillis()}.json"
-            )
+            val file = ExportUtil.exportFeedingRecordsText(requireContext(), records)
             if (file != null) {
                 Toast.makeText(requireContext(), "导出成功：${file.absolutePath}", Toast.LENGTH_SHORT).show()
             } else {

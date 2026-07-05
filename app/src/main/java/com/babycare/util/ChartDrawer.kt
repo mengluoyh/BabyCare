@@ -26,23 +26,25 @@ object ChartDrawer {
         val dailyData: Map<String, Pair<Int, Int>>,
         val chartDays: Int,
         val density: Float,
-        /** 底部柱子颜色（argb） */
+        /** 左/底部柱子颜色（argb） */
         val barColor1: Int,
-        /** 顶部柱子颜色（argb） */
+        /** 右/顶部柱子颜色（argb） */
         val barColor2: Int,
-        /** 底部柱子数值标签颜色 */
+        /** 左/底部柱子数值标签颜色 */
         val labelColor1: Int,
-        /** 顶部柱子数值标签颜色 */
+        /** 右/顶部柱子数值标签颜色 */
         val labelColor2: Int,
         /** 图例文字，可用 %1\$d %2\$d 占位符接收 total1 total2 */
         val legendFormat: String,
         val total1: Int,
-        val total2: Int
+        val total2: Int,
+        /** true=左右并排，false=上下堆叠（默认false） */
+        val sideBySide: Boolean = false
     )
 
     fun draw(config: ChartConfig) {
         val (ctx, chartContainer, columnsContainer, dailyData, chartDays, density,
-             barC1, barC2, labelC1, labelC2, legendFmt, total1, total2) = config
+             barC1, barC2, labelC1, labelC2, legendFmt, total1, total2, sideBySide) = config
 
         val maxVal = dailyData.values.maxOfOrNull { maxOf(it.first, it.second) } ?: 1
         val barWidth = (Math.max(8, 24 - chartDays)).toInt() * density.toInt()
@@ -87,7 +89,7 @@ object ChartDrawer {
 
         // ─── 柱状图 ───
         for ((date, data) in dailyData) {
-            val (v1, v2) = data  // v1 = 底部柱子, v2 = 顶部柱子
+            val (v1, v2) = data  // v1 = 左/底部柱子, v2 = 右/顶部柱子
             val col = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -95,45 +97,97 @@ object ChartDrawer {
                 setPadding(1, 0, 1, 0)
             }
 
-            // 底部柱子（分类1）
-            val bar1 = View(ctx).apply {
-                val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
-                layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
-                background = GradientDrawable().apply {
-                    setColor(barC1)
-                    cornerRadius = 4f * density
+            if (sideBySide) {
+                // ─── 左右并排模式 ───
+                val row = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.BOTTOM
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
                 }
-            }
-            // 顶部柱子（分类2）
-            val bar2 = View(ctx).apply {
-                val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
-                layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
-                background = GradientDrawable().apply {
-                    setColor(barC2)
-                    cornerRadius = 4f * density
+                // 左柱（分类1）
+                val bar1 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(0, h.coerceAtLeast(2), 1f)
+                    background = GradientDrawable().apply {
+                        setColor(barC1)
+                        cornerRadius = 4f * density
+                    }
                 }
-            }
+                // 右柱（分类2）
+                val bar2 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(0, h.coerceAtLeast(2), 1f)
+                    background = GradientDrawable().apply {
+                        setColor(barC2)
+                        cornerRadius = 4f * density
+                    }
+                }
+                row.addView(bar1)
+                row.addView(bar2)
 
-            // 数值标签（从上往下加：先加顶部标签，再加底部标签）
-            if (v2 > 0) {
-                col.addView(TextView(ctx).apply {
-                    text = v2.toString()
-                    textSize = 8f
-                    gravity = Gravity.CENTER
-                    setTextColor(labelC2)
-                })
-            }
-            if (v1 > 0) {
-                col.addView(TextView(ctx).apply {
-                    text = v1.toString()
-                    textSize = 8f
-                    gravity = Gravity.CENTER
-                    setTextColor(labelC1)
-                })
-            }
+                // 数值标签
+                if (v1 > 0) {
+                    col.addView(TextView(ctx).apply {
+                        text = v1.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC1)
+                    })
+                }
+                if (v2 > 0) {
+                    col.addView(TextView(ctx).apply {
+                        text = v2.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC2)
+                    })
+                }
+                col.addView(row)
+            } else {
+                // ─── 上下堆叠模式（原逻辑） ───
+                // 底部柱子（分类1）
+                val bar1 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
+                    background = GradientDrawable().apply {
+                        setColor(barC1)
+                        cornerRadius = 4f * density
+                    }
+                }
+                // 顶部柱子（分类2）
+                val bar2 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
+                    background = GradientDrawable().apply {
+                        setColor(barC2)
+                        cornerRadius = 4f * density
+                    }
+                }
 
-            col.addView(bar1)
-            col.addView(bar2)
+                // 数值标签（从上往下加：先加顶部标签，再加底部标签）
+                if (v2 > 0) {
+                    col.addView(TextView(ctx).apply {
+                        text = v2.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC2)
+                    })
+                }
+                if (v1 > 0) {
+                    col.addView(TextView(ctx).apply {
+                        text = v1.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC1)
+                    })
+                }
+
+                col.addView(bar1)
+                col.addView(bar2)
+            }
 
             // 日期标签
             val showLabel = if (chartDays > 15) {

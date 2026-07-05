@@ -1,386 +1,445 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
+    android:orientation="vertical"
     android:background="@color/background">
 
-    <LinearLayout
+    <!-- 标题 -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:contentPadding="4dp"
+        android:layout_margin="12dp"
+        android:layout_marginBottom="0dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏱️ 计时"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/on_background" />
+    </com.google.android.material.card.MaterialCardView>
 
-        <!-- ─── 今日喂养统计卡片 ─── -->
-        <com.google.android.material.card.MaterialCardView
+    <!-- ─── Tab切换栏 ─── -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        app:tabGravity="fill"
+        app:tabMode="fixed"
+        app:tabIndicatorColor="@color/primary"
+        app:tabSelectedTextColor="@color/primary"
+        app:tabTextColor="@color/on_surface_variant" />
+
+    <!-- ⏰ 时间 Tab 内容 -->
+    <ScrollView
+        android:id="@+id/scrollTime"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:visibility="visible">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="16dp"
-            app:cardCornerRadius="16dp">
-            <LinearLayout
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- ─── 倒计时卡片 ─── -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📊 今日喂养统计"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_background" />
+                android:layout_marginBottom="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:contentPadding="16dp"
+                app:cardCornerRadius="16dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center">
+                        android:text="⏰ 定时喂奶"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_background" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+                        <EditText
+                            android:id="@+id/etInterval"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:inputType="number"
+                            android:text="180"
+                            android:hint="间隔分钟" />
                         <TextView
-                            android:id="@+id/tvTodayBreastCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="32sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/secondary" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🤱 母乳(次)"
-                            android:textSize="13sp"
+                            android:text=" 分钟"
+                            android:layout_gravity="center_vertical"
                             android:textColor="@color/on_surface_variant" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetInterval"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="开始" />
                     </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/tvCountdown"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center">
-                        <TextView
-                            android:id="@+id/tvTodayFormulaAmount"
-                            android:layout_width="wrap_content"
+                        android:text="--:--:--"
+                        android:textSize="48sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:layout_marginTop="12dp"
+                        android:textColor="@color/warm_orange" />
+                    <TextView
+                        android:id="@+id/tvCountdownLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textSize="14sp"
+                        android:gravity="center"
+                        android:textColor="@color/on_surface_variant" />
+                    <TextView
+                        android:id="@+id/tvEstimatedTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="@color/warm_orange" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPause"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="⏸️ 暂停"
+                        android:layout_marginTop="8dp"
+                        android:enabled="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ─── 距上次喂养时间卡片 ─── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:contentPadding="16dp"
+                app:cardCornerRadius="16dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏱️ 距上次喂养"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_background" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="32sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/warm_orange" />
-                        <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:id="@+id/tvTimeSinceBreast"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--:--:--"
+                                android:textSize="28sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/secondary" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🤱 距上次母乳"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="🍼 配方奶(ml)"
-                            android:textSize="13sp"
-                            android:textColor="@color/on_surface_variant" />
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:id="@+id/tvTimeSinceFormula"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--:--:--"
+                                android:textSize="28sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/warm_orange" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🍼 距上次配方奶"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
 
-        <!-- ─── 配方奶建议量卡片 ─── -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="16dp"
-            app:cardCornerRadius="16dp">
-            <LinearLayout
+            <!-- ─── 快速操作 ─── -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🍼 配方奶建议量"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_background" />
+                android:layout_marginBottom="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:contentPadding="16dp"
+                app:cardCornerRadius="16dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical">
                     <TextView
-                        android:id="@+id/tvSuggestedFormula"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="-- ml"
-                        android:textSize="28sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/warm_orange" />
-
-                    <TextView
-                        android:id="@+id/tvFormulaRemaining"
                         android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ 快速记录"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_background" />
+                    <RadioGroup
+                        android:id="@+id/rgFeedType"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+                        <RadioButton
+                            android:id="@+id/rbBreast"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🤱 母乳" />
+                        <RadioButton
+                            android:id="@+id/rbFormula"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🍼 配方奶"
+                            android:checked="true" />
+                    </RadioGroup>
+                    <EditText
+                        android:id="@+id/etVolume"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="配方奶量 (ml)"
+                        android:inputType="number"
+                        android:layout_marginTop="8dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFeedNow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🍼 记录喂奶"
+                        android:layout_marginTop="8dp" />
+                    <LinearLayout
+                        android:id="@+id/audioControlBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:visibility="gone"
+                        android:layout_marginTop="8dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🔊 提醒音频播放中" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnStopAudio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="关闭音频" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 📊 统计 Tab 内容 -->
+    <ScrollView
+        android:id="@+id/scrollStats"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- ─── 今日喂养统计卡片 ─── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:contentPadding="16dp"
+                app:cardCornerRadius="16dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📊 今日喂养统计"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_background" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:id="@+id/tvTodayBreastCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="32sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/secondary" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🤱 母乳(次)"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:id="@+id/tvTodayFormulaAmount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="32sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/warm_orange" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🍼 配方奶(ml)"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ─── 配方奶建议量卡片 ─── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:contentPadding="16dp"
+                app:cardCornerRadius="16dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🍼 配方奶建议量"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/on_background" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:id="@+id/tvSuggestedFormula"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="-- ml"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/warm_orange" />
+
+                        <TextView
+                            android:id="@+id/tvFormulaRemaining"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textSize="13sp"
+                            android:textColor="@color/on_surface_variant"
+                            android:layout_marginEnd="8dp" />
+
+                        <EditText
+                            android:id="@+id/etCustomFormula"
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:hint="自定义"
+                            android:textSize="14sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSaveFormula"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="保存"
+                            style="@style/Widget.Material3.Button.TextButton" />
+                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvFormulaRemainingDetail"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text=""
                         android:textSize="13sp"
-                        android:textColor="@color/on_surface_variant"
-                        android:layout_marginEnd="8dp" />
-
-                    <EditText
-                        android:id="@+id/etCustomFormula"
-                        android:layout_width="80dp"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:hint="自定义"
-                        android:textSize="14sp" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSaveFormula"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="保存"
-                        style="@style/Widget.Material3.Button.TextButton" />
+                        android:textColor="@color/warm_orange"
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
-                <TextView
-                    android:id="@+id/tvFormulaRemainingDetail"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textSize="13sp"
-                    android:textColor="@color/warm_orange"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ─── 倒计时卡片 ─── -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="16dp"
-            app:cardCornerRadius="16dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⏰ 定时喂奶"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_background" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-                    <EditText
-                        android:id="@+id/etInterval"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:inputType="number"
-                        android:text="180"
-                        android:hint="间隔分钟" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=" 分钟"
-                        android:layout_gravity="center_vertical"
-                        android:textColor="@color/on_surface_variant" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSetInterval"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="开始" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/tvCountdown"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="--:--:--"
-                    android:textSize="48sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:layout_marginTop="12dp"
-                    android:textColor="@color/warm_orange" />
-                <TextView
-                    android:id="@+id/tvCountdownLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textSize="14sp"
-                    android:gravity="center"
-                    android:textColor="@color/on_surface_variant" />
-                <TextView
-                    android:id="@+id/tvEstimatedTime"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:textColor="@color/warm_orange" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPause"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="⏸️ 暂停"
-                    android:layout_marginTop="8dp"
-                    android:enabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ─── 距上次喂养时间卡片 ─── -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="16dp"
-            app:cardCornerRadius="16dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⏱️ 距上次喂养"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_background" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center">
-                        <TextView
-                            android:id="@+id/tvTimeSinceBreast"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--:--:--"
-                            android:textSize="28sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/secondary" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🤱 距上次母乳"
-                            android:textSize="13sp"
-                            android:textColor="@color/on_surface_variant"
-                            android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center">
-                        <TextView
-                            android:id="@+id/tvTimeSinceFormula"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--:--:--"
-                            android:textSize="28sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/warm_orange" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🍼 距上次配方奶"
-                            android:textSize="13sp"
-                            android:textColor="@color/on_surface_variant"
-                            android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ─── 快速操作 ─── -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="16dp"
-            app:cardCornerRadius="16dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡ 快速记录"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_background" />
-                <RadioGroup
-                    android:id="@+id/rgFeedType"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-                    <RadioButton
-                        android:id="@+id/rbBreast"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="🤱 母乳" />
-                    <RadioButton
-                        android:id="@+id/rbFormula"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="🍼 配方奶"
-                        android:checked="true" />
-                </RadioGroup>
-                <EditText
-                    android:id="@+id/etVolume"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="配方奶量 (ml)"
-                    android:inputType="number"
-                    android:layout_marginTop="8dp" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFeedNow"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🍼 记录喂奶"
-                    android:layout_marginTop="8dp" />
-                <LinearLayout
-                    android:id="@+id/audioControlBar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:visibility="gone"
-                    android:layout_marginTop="8dp">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="🔊 提醒音频播放中" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnStopAudio"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="关闭音频" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
-</ScrollView>
+    </ScrollView>
+
+</LinearLayout>

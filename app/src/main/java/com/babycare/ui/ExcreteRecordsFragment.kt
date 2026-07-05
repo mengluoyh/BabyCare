@@ -126,13 +126,14 @@ class ExcreteRecordsFragment : Fragment() {
                 dailyData = dailyData,
                 chartDays = chartDays,
                 density = resources.displayMetrics.density,
-                barColor1 = 0xFF795548.toInt(),   // 排便（底部，棕色）
-                barColor2 = 0xFF1976D2.toInt(),   // 排尿（顶部，蓝色）
+                barColor1 = 0xFF795548.toInt(),   // 排便（左，棕色）
+                barColor2 = 0xFF1976D2.toInt(),   // 排尿（右，蓝色）
                 labelColor1 = 0xFF795548.toInt(),
                 labelColor2 = 0xFF1976D2.toInt(),
                 legendFormat = "● 排便 %d 次    ■ 排尿 %d 次",
                 total1 = totalBowel,
-                total2 = totalPee
+                total2 = totalPee,
+                sideBySide = true
             ))
 
             binding.tvChartLegend.text = "● 排便 $totalBowel 次    ■ 排尿 $totalPee 次"
@@ -150,11 +151,7 @@ class ExcreteRecordsFragment : Fragment() {
     private fun exportRecords() {
         lifecycleScope.launch {
             val records = excreteDao.getAllSnapshot()
-            val file = ExportUtil.exportToJson(
-                requireContext(),
-                records,
-                "excrete_${System.currentTimeMillis()}.json"
-            )
+            val file = ExportUtil.exportExcreteRecordsText(requireContext(), records)
             if (file != null) {
                 Toast.makeText(requireContext(), "导出成功：${file.absolutePath}", Toast.LENGTH_SHORT).show()
             } else {

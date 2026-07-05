@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.util.AudioPlayer
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -41,9 +42,28 @@ class TimerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupTabs()
         setupUI()
         observeState()
         observeEvents()
+    }
+
+    // ═══════════════════ Tab切换 ═══════════════════
+
+    private fun setupTabs() {
+        with(binding.tabLayout) {
+            addTab(newTab().setText("⏰ 时间"))
+            addTab(newTab().setText("📊 统计"))
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    val isTime = tab?.position == 0
+                    binding.scrollTime.visibility = if (isTime) View.VISIBLE else View.GONE
+                    binding.scrollStats.visibility = if (isTime) View.GONE else View.VISIBLE
+                }
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
+        }
     }
 
     // ═══════════════════ UI 绑定 ═══════════════════
