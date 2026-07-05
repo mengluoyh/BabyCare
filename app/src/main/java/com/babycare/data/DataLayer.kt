@@ -139,7 +139,7 @@ interface BabyDao {
 
 @Database(
     entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -151,19 +151,45 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        /** v1→v2：baby_profile 移除 name/customFormulaTarget/formulaAgeUnit 列 */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // 表结构无变化，无需执行SQL
-                android.util.Log.w("AppDatabase", "Migration 1->2: schema unchanged")
+                db.execSQL("CREATE TABLE baby_profile_new (" +
+                        "id INTEGER PRIMARY KEY NOT NULL, " +
+                        "birthDate INTEGER NOT NULL, " +
+                        "isLocked INTEGER NOT NULL DEFAULT 0)")
+                db.execSQL("INSERT INTO baby_profile_new (id, birthDate, isLocked) " +
+                        "SELECT id, birthDate, isLocked FROM baby_profile")
+                db.execSQL("DROP TABLE baby_profile")
+                db.execSQL("ALTER TABLE baby_profile_new RENAME TO baby_profile")
+                android.util.Log.w("AppDatabase", "Migration 1->2: removed name/customFormulaTarget/formulaAgeUnit")
             }
         }
 
+        /** v2→v3：baby_profile 新增 weight/weightLocked */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // baby_profile新增weight和weightLocked列
                 db.execSQL("ALTER TABLE baby_profile ADD COLUMN weight REAL NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE baby_profile ADD COLUMN weightLocked INTEGER NOT NULL DEFAULT 0")
                 android.util.Log.w("AppDatabase", "Migration 2->3: added weight/weightLocked")
+            }
+        }
+
+        /** v3→v4：修复之前错误的 MIGRATION_1_2（原为空操作），重建 baby_profile 移除残留列 */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 重建 baby_profile，只保留当前实体定义的列
+                db.execSQL("CREATE TABLE baby_profile_new (" +
+                        "id INTEGER PRIMARY KEY NOT NULL, " +
+                        "birthDate INTEGER NOT NULL, " +
+                        "isLocked INTEGER NOT NULL DEFAULT 0, " +
+                        "weight REAL NOT NULL DEFAULT 0, " +
+                        "weightLocked INTEGER NOT NULL DEFAULT 0)")
+                db.execSQL("INSERT INTO baby_profile_new (id, birthDate, isLocked, weight, weightLocked) " +
+                        "SELECT id, birthDate, isLocked, weight, weightLocked FROM baby_profile")
+                db.execSQL("DROP TABLE baby_profile")
+                db.execSQL("ALTER TABLE baby_profile_new RENAME TO baby_profile")
+                android.util.Log.w("AppDatabase", "Migration 3->4: rebuilt baby_profile to match current schema")
             }
         }
 
@@ -173,7 +199,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
