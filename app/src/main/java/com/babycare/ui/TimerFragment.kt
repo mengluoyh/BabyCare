@@ -85,10 +85,14 @@ class TimerFragment : Fragment() {
             val fontColor = AndroidColor.parseColor(settings.getFontColor())
             // 设置ScrollView背景
             binding.root.setBackgroundColor(layoutColor)
-            // 递归设置所有TextView的字体颜色（简化：仅顶层）
-            for (i in 0 until (binding.root as? android.widget.ScrollView)?.childCount ?: 0) {
-                val child = (binding.root as android.widget.ScrollView).getChildAt(i)
-                applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+            // 递归设置所有TextView的字体颜色
+            val scrollView = binding.root as? android.widget.ScrollView
+            if (scrollView != null) {
+                val childCount = scrollView.childCount
+                for (i in 0 until childCount) {
+                    val child = scrollView.getChildAt(i)
+                    applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+                }
             }
         } catch (_: Exception) { /* 颜色解析失败时使用默认值 */ }
     }

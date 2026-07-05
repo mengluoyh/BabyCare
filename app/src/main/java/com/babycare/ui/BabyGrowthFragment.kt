@@ -101,9 +101,13 @@ class BabyGrowthFragment : Fragment() {
             val layoutColor = AndroidColor.parseColor(settings.getLayoutColor())
             val fontColor = AndroidColor.parseColor(settings.getFontColor())
             binding.root.setBackgroundColor(layoutColor)
-            for (i in 0 until (binding.root as? android.widget.ScrollView)?.childCount ?: 0) {
-                val child = (binding.root as android.widget.ScrollView).getChildAt(i)
-                applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+            val scrollView = binding.root as? android.widget.ScrollView
+            if (scrollView != null) {
+                val childCount = scrollView.childCount
+                for (i in 0 until childCount) {
+                    val child = scrollView.getChildAt(i)
+                    applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+                }
             }
         } catch (_: Exception) {}
     }
