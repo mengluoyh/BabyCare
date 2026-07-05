@@ -225,7 +225,7 @@ class ExcreteRecordsFragment : Fragment() {
                     text = if (showLabel) date else ""
                     textSize = 7f
                     gravity = android.view.Gravity.CENTER
-                    setTextColor(0xAAFFFFFF.toInt())
+                    setTextColor(0xFF000000.toInt())
                 }
                 col.addView(dateLabel)
 

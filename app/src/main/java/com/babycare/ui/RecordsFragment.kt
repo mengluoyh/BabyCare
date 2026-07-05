@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.babycare.databinding.FragmentRecordsBinding
+import com.babycare.R
 
 class RecordsFragment : Fragment() {
     private var _binding: FragmentRecordsBinding? = null
@@ -28,6 +29,9 @@ class RecordsFragment : Fragment() {
         }
         binding.cardExcrete.setOnClickListener {
             openChildFragment(ExcreteRecordsFragment())
+        }
+        binding.cardCustomRecord.setOnClickListener {
+            openChildFragment(CustomRecordFragment())
         }
     }
 

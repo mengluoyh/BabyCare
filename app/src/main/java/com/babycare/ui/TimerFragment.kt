@@ -20,8 +20,6 @@ import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.service.AlarmScheduler
 import com.babycare.util.AgeCalculator
 import com.babycare.util.AudioPlayer
-import android.graphics.Color as AndroidColor
-import android.widget.ScrollView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -56,7 +54,6 @@ class TimerFragment : Fragment() {
         restoreState()
         loadBabyProfile()
         loadTodayStats()
-        applyCustomColors()
     }
 
     /** 加载今日喂养统计 */
@@ -75,42 +72,6 @@ class TimerFragment : Fragment() {
 
             binding.tvTodayBreastCount.text = breastCount.toString()
             binding.tvTodayFormulaAmount.text = formulaTotal.toString()
-        }
-    }
-
-    /** 应用自定义配色方案 */
-    private fun applyCustomColors() {
-        try {
-            val layoutColor = AndroidColor.parseColor(settings.getLayoutColor())
-            val fontColor = AndroidColor.parseColor(settings.getFontColor())
-            // 设置ScrollView背景
-            binding.root.setBackgroundColor(layoutColor)
-            // 递归设置所有TextView的字体颜色
-            val scrollView = binding.root as? android.widget.ScrollView
-            if (scrollView != null) {
-                val childCount = scrollView.childCount
-                for (i in 0 until childCount) {
-                    val child = scrollView.getChildAt(i)
-                    applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
-                }
-            }
-        } catch (_: Exception) { /* 颜色解析失败时使用默认值 */ }
-    }
-
-    private fun applyFontColorToViewGroup(group: android.view.ViewGroup?, color: Int) {
-        group?.let { g ->
-            for (i in 0 until g.childCount) {
-                val child = g.getChildAt(i)
-                if (child is android.widget.TextView) {
-                    // 只修改非链接、非按钮文本的颜色
-                    if (child.currentTextColor != 0 && child.isEnabled) {
-                        try { child.setTextColor(color) } catch (_: Exception) {}
-                    }
-                }
-                if (child is android.view.ViewGroup) {
-                    applyFontColorToViewGroup(child, color)
-                }
-            }
         }
     }
 
@@ -172,23 +133,6 @@ class TimerFragment : Fragment() {
             if (checked) binding.etVolume.isEnabled = true
         }
 
-        // ─── 自定义补录 ───
-        binding.rbCustomBreast.setOnCheckedChangeListener { _, checked ->
-            binding.etCustomVolume.isEnabled = !checked
-            if (checked) binding.etCustomVolume.text?.clear()
-        }
-        binding.rbCustomFormula.setOnCheckedChangeListener { _, checked ->
-            if (checked) binding.etCustomVolume.isEnabled = true
-        }
-        binding.btnSaveCustomRecord.setOnClickListener {
-            val isBreast = binding.rbCustomBreast.isChecked
-            val feedType = if (isBreast) "breast" else "formula"
-            val volume = if (!isBreast) binding.etCustomVolume.text.toString().toIntOrNull() else null
-            saveFeedingRecord("manual", feedType, volume)
-            binding.etCustomVolume.text?.clear()
-            loadTodayStats()
-        }
-
         // 配方奶建议量保存
         binding.btnSaveFormula.setOnClickListener {
             val text = binding.etCustomFormula.text.toString()
@@ -222,15 +166,6 @@ class TimerFragment : Fragment() {
             )
             feedingDao.insert(record)
             Toast.makeText(requireContext(), "已记录${if (feedType == "breast") "母乳" else "配方奶"}喂养", Toast.LENGTH_SHORT).show()
-            // 自动备份（如果开启了）
-            triggerAutoBackup()
-        }
-    }
-
-    /** 自动备份：如果开启了自动备份，则备份到本地+WebDAV */
-    private fun triggerAutoBackup() {
-        if (settings.isWebDavAutoSync()) {
-            com.babycare.util.BackupManager.backupAll(requireContext()) { _, _ -> }
         }
     }
 
