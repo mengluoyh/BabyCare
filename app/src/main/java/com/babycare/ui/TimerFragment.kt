@@ -3,6 +3,7 @@ package com.babycare.ui
 
 import android.app.AlertDialog
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.util.AudioPlayer
+import com.babycare.util.CountdownNotificationHelper
+import com.babycare.util.CountdownNotificationReceiver
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -42,6 +45,17 @@ class TimerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // 请求通知权限（Android13+）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
+        }
+
+        // 注册通知栏操作回调
+        CountdownNotificationReceiver.onPause = { viewModel.pause() }
+        CountdownNotificationReceiver.onResume = { viewModel.resume() }
+        CountdownNotificationReceiver.onClear = { viewModel.clearTimer() }
+
         setupTabs()
         setupUI()
         observeState()
@@ -123,15 +137,27 @@ class TimerFragment : Fragment() {
                     binding.tvTodayFormulaCount.text = state.todayFormulaCount.toString()
                     binding.tvTodayFormulaAmount.text = state.todayFormulaAmount.toString()
                     binding.tvSuggestedFormula.text = state.suggestedFormula
-                    // 🎯 距离目标差量（迁移至目标卡片）
                     binding.tvGoalRemaining.text = state.formulaRemaining
-                    // 上次喂养
                     binding.tvLastBreastTime.text = state.lastBreastTime
                     binding.tvLastBreastDetail.text = "🤱 上次母乳 · ${state.lastBreastDetail}"
                     binding.tvLastFormulaTime.text = state.lastFormulaTime
                     binding.tvLastFormulaDetail.text = "🍼 上次配方奶 · ${state.lastFormulaDetail}"
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
                     binding.btnPause.isEnabled = state.isPauseEnabled
+
+                    // 持续倒计时通知
+                    if (state.isPauseEnabled) {
+                        CountdownNotificationHelper.showCountdown(
+                            requireContext(),
+                            state.countdownText,
+                            state.estimatedTimeText,
+                            state.labelText,
+                            state.isPaused,
+                            state.intervalMinutes
+                        )
+                    } else {
+                        CountdownNotificationHelper.cancel(requireContext())
+                    }
                 }
             }
         }
@@ -201,6 +227,10 @@ class TimerFragment : Fragment() {
         stopAudio()
         alertDialog?.dismiss()
         alertDialog = null
+        CountdownNotificationHelper.cancel(requireContext())
+        CountdownNotificationReceiver.onPause = null
+        CountdownNotificationReceiver.onResume = null
+        CountdownNotificationReceiver.onClear = null
         _binding = null
     }
 }

@@ -108,5 +108,8 @@
         <receiver
             android:name=".service.AlarmReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".util.CountdownNotificationReceiver"
+            android:exported="false" />
     </application>
 </manifest>
