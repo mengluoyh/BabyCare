@@ -25,7 +25,7 @@ class WeightTrendFragment : Fragment() {
     }
 
     private var weightRecords = listOf<WeightRecord>()
-    private var weightDao by lazy { (requireActivity().application as BabyCareApp).database.weightDao() }
+    private val weightDao by lazy { (requireActivity().application as BabyCareApp).database.weightDao() }
 
     // 视图引用
     private lateinit var statsView: android.widget.TextView
@@ -420,6 +420,6 @@ class WeightListAdapter(
 
     inner class VH(val tv: android.widget.TextView, onDelete: (Int) -> Unit) :
         androidx.recyclerview.widget.RecyclerView.ViewHolder(tv) {
-        init { tv.setOnLongClickListener { onDelete(bindingAdapterPosition); true } }
+        init { tv.setOnLongClickListener { onDelete(adapterPosition); true } }
     }
 }
