@@ -13,8 +13,8 @@ android {
         applicationId = "com.babycare"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1070
-        versionName = "1.0.70"
+        versionCode = 1080
+        versionName = "1.0.80"
     }
 
     buildFeatures {
