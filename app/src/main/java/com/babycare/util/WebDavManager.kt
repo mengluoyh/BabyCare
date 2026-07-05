@@ -49,6 +49,7 @@ object WebDavManager {
 
             val code = conn.responseCode
             if (code in 200..299) {
+                saveUploadedFilename(context, filename)
                 Result.success("WebDAV 上传成功: $filename")
             } else {
                 Result.failure(Exception("WebDAV 上传失败: HTTP $code"))
@@ -65,7 +66,7 @@ object WebDavManager {
 
             // 获取备份文件列表
             val baseUrl = config.url.trimEnd('/')
-            val files = listBackupFiles(config)
+            val files = listBackupFiles(config, context)
 
             if (files.isEmpty()) {
                 return@withContext Result.failure(Exception("远程没有备份文件"))
@@ -104,7 +105,7 @@ object WebDavManager {
     suspend fun listRemoteFiles(context: Context): Result<List<String>> = withContext(Dispatchers.IO) {
         try {
             val config = loadConfig(context) ?: return@withContext Result.failure(Exception("未配置 WebDAV"))
-            val files = listBackupFiles(config)
+            val files = listBackupFiles(config, context)
             Result.success(files)
         } catch (e: Exception) {
             Result.failure(e)
@@ -127,6 +128,21 @@ object WebDavManager {
         val username = prefs.getString("webdav_username", "") ?: ""
         val password = prefs.getString("webdav_password", "") ?: ""
         return WebDavConfig(url, username, password)
+    }
+
+    /** 保存已上传的文件名到本地，用于列表接口不可用时的恢复 */
+    private fun saveUploadedFilename(context: Context, filename: String) {
+        val prefs = context.getSharedPreferences("webdav_prefs", Context.MODE_PRIVATE)
+        val set = prefs.getStringSet("uploaded_files", mutableSetOf()) ?: mutableSetOf()
+        val newSet = set.toMutableSet()
+        newSet.add(filename)
+        prefs.edit().putStringSet("uploaded_files", newSet).apply()
+    }
+
+    /** 读取本地记录的已上传文件名列表 */
+    private fun getUploadedFilenames(context: Context): List<String> {
+        val prefs = context.getSharedPreferences("webdav_prefs", Context.MODE_PRIVATE)
+        return (prefs.getStringSet("uploaded_files", emptySet()) ?: emptySet()).sortedDescending()
     }
 
     data class WebDavConfig(
@@ -154,10 +170,10 @@ object WebDavManager {
     }
 
     /** 列出 WebDAV 上所有备份文件（按文件名倒序） */
-    private fun listBackupFiles(config: WebDavConfig): List<String> {
+    private fun listBackupFiles(config: WebDavConfig, context: Context? = null): List<String> {
         val listUrl = config.url.trimEnd('/') + "/"
 
-        // 首选 PROPFIND（标准 WebDAV），失败则降级为 GET
+        // 首选 PROPFIND（标准 WebDAV），失败则降级
         val body: String? = try {
             val conn = URL(listUrl).openConnection() as HttpURLConnection
             conn.requestMethod = "PROPFIND"
@@ -169,7 +185,7 @@ object WebDavManager {
             if (code in 200..299) {
                 conn.inputStream.bufferedReader().use { it.readText() }
             } else {
-                null // 降级
+                null
             }
         } catch (_: Exception) {
             null
@@ -192,30 +208,48 @@ object WebDavManager {
                     }
                 }
             }
-        } else {
-            // 降级：GET 请求目录，从 HTML/文本中正则提取文件名
-            try {
-                val conn = URL(listUrl).openConnection() as HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.connectTimeout = TIMEOUT
-                conn.readTimeout = TIMEOUT
-                conn.setRequestProperty("Authorization", basicAuth(config))
-                val code = conn.responseCode
-                if (code in 200..299) {
-                    val text = conn.inputStream.bufferedReader().use { it.readText() }
-                    // 匹配 href 链接或直接出现在文本中的备份文件名
-                    val hrefRegex = Regex("""href=["']([^"']*babycare_backup_\d{8}_\d{6}\.json)["']""", RegexOption.IGNORE_CASE)
-                    for (m in hrefRegex.findAll(text)) files.add(m.groupValues[1].trim())
-                    if (files.isEmpty()) {
-                        val rawRegex = Regex("babycare_backup_\\d{8}_\\d{6}\\.json")
-                        for (m in rawRegex.findAll(text)) files.add(m.value)
-                    }
+            if (files.isNotEmpty()) return files.sortedByDescending { it }
+        }
+
+        // 降级：GET 请求目录，从 HTML/文本中正则提取文件名
+        try {
+            val conn = URL(listUrl).openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = TIMEOUT
+            conn.readTimeout = TIMEOUT
+            conn.setRequestProperty("Authorization", basicAuth(config))
+            val code = conn.responseCode
+            if (code in 200..299) {
+                val text = conn.inputStream.bufferedReader().use { it.readText() }
+                val hrefRegex = Regex("""href=["']([^"']*babycare_backup_\d{8}_\d{6}\.json)["']""", RegexOption.IGNORE_CASE)
+                for (m in hrefRegex.findAll(text)) files.add(m.groupValues[1].trim())
+                if (files.isEmpty()) {
+                    val rawRegex = Regex("babycare_backup_\\d{8}_\\d{6}\\.json")
+                    for (m in rawRegex.findAll(text)) files.add(m.value)
                 }
-            } catch (e: Exception) {
-                throw Exception("WebDAV 列表失败（PROPFIND 和 GET 均不可用）: ${e.message}")
+            }
+            if (files.isNotEmpty()) return files.sortedByDescending { it }
+        } catch (_: Exception) {
+            // GET 也失败，继续降级
+        }
+
+        // 最终降级：使用本地记录的上传文件名，逐个尝试 GET 验证
+        if (context != null) {
+            for (name in getUploadedFilenames(context)) {
+                try {
+                    val testUrl = listUrl + name
+                    val testConn = URL(testUrl).openConnection() as HttpURLConnection
+                    testConn.requestMethod = "GET"
+                    testConn.connectTimeout = TIMEOUT
+                    testConn.readTimeout = TIMEOUT
+                    testConn.setRequestProperty("Authorization", basicAuth(config))
+                    if (testConn.responseCode in 200..299) {
+                        files.add(name)
+                    }
+                } catch (_: Exception) {}
             }
         }
 
-        return files.sortedByDescending { it }.toList()
+        return files.sortedByDescending { it }
     }
 }

@@ -2,11 +2,13 @@
 package com.babycare.ui
 
 import android.app.AlertDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -17,11 +19,18 @@ import com.babycare.util.BackupManager
 import com.babycare.util.IconChanger
 import com.babycare.util.WebDavManager
 import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private val settings by lazy { SettingsManager(requireContext()) }
+
+    // 文件选择器：让用户从任意文件夹选择 .json 备份文件
+    private val backupFilePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) restoreFromUri(uri)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
@@ -53,6 +62,7 @@ class SettingsFragment : Fragment() {
         // ─── 本地备份 ───
         binding.btnLocalBackup.setOnClickListener { doLocalBackup() }
         binding.btnRestoreBackup.setOnClickListener { showRestorePicker() }
+        binding.btnPickBackupFile.setOnClickListener { pickBackupFile() }
 
         // ─── WebDAV 远程备份 ───
         loadWebDavConfig()
@@ -136,6 +146,37 @@ class SettingsFragment : Fragment() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    /** 打开系统文件选择器，让用户选取任意 .json 备份文件 */
+    private fun pickBackupFile() {
+        backupFilePicker.launch(arrayOf("application/json", "*/*"))
+    }
+
+    /** 从用户选择的 URI 读取并恢复备份 */
+    private fun restoreFromUri(uri: Uri) {
+        binding.tvSyncStatus.text = "⏳ 恢复中..."
+        lifecycleScope.launch {
+            try {
+                val input = requireContext().contentResolver.openInputStream(uri)
+                val json = input?.bufferedReader()?.use { it.readText() } ?: ""
+                if (json.isBlank()) {
+                    binding.tvSyncStatus.text = "❌ 文件为空或无法读取"
+                    return@launch
+                }
+                val data = com.google.gson.Gson().fromJson(json, BackupManager.BackupData::class.java)
+                val app = com.babycare.BabyCareApp.instance
+                val db = app.database
+                if (data.feedingRecords.isNotEmpty()) db.feedingDao().insertAll(data.feedingRecords)
+                if (data.excreteRecords.isNotEmpty()) db.excreteDao().insertAll(data.excreteRecords)
+                data.babyProfile?.let { db.babyDao().upsertProfile(it) }
+                val msg = "恢复成功:${data.feedingRecords.size}条喂养,${data.excreteRecords.size}条排泄"
+                binding.tvSyncStatus.text = "✅ $msg"
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                binding.tvSyncStatus.text = "❌ 恢复失败:${e.message}"
+            }
+        }
     }
 
     private fun loadWebDavConfig() {

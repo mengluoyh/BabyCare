@@ -72,6 +72,13 @@
                         android:layout_marginStart="4dp"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
                 </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPickBackupFile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="📂 从文件夹选择备份文件恢复"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <TextView
                     android:id="@+id/tvLocalBackupCount"
