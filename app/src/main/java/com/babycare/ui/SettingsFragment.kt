@@ -55,7 +55,7 @@ class SettingsFragment : Fragment() {
 
         // 列出本地备份文件数
         val localDir = java.io.File("/storage/emulated/0/BabyCare/backups")
-        val count = if (localDir.exists()) localDir.listFiles()?.filter { it.name.startsWith("babycare_backup_") && it.name.endsWith(".txt") }?.size ?: 0 else 0
+        val count = if (localDir.exists()) localDir.listFiles()?.filter { it.name.startsWith("babycare_backup_") && it.name.endsWith(".json") }?.size ?: 0 else 0
         binding.tvLocalBackupCount.text = if (count > 0) "本地备份文件: $count 个" else "暂无本地备份"
     }
 
