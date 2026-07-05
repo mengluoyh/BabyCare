@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/ExcretePeeFragment.kt
 package com.babycare.ui
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -70,10 +71,10 @@ class ExcretePeeFragment : Fragment() {
     }
 
     private fun deleteRecord(record: ExcreteRecord) {
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("删除确认")
             .setMessage("确定删除此条排尿记录？")
-            .setPositiveButton("删除") { _, _ ->
+            .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch { excreteDao.delete(record) }
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
             }

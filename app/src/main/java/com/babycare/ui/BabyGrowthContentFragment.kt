@@ -2,6 +2,7 @@
 package com.babycare.ui
 
 import android.app.DatePickerDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -268,10 +269,10 @@ class BabyGrowthContentFragment : Fragment() {
     }
 
     private fun deleteVaccine(record: VaccinationRecord) {
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("删除确认")
             .setMessage("确定删除疫苗「${record.vaccineName}」记录？")
-            .setPositiveButton("删除") { _, _ ->
+            .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch {
                     vaccineDao.delete(record)
                     loadVaccines()
