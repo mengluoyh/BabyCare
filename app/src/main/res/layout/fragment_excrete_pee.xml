@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@color/background">
+
+    <!-- 快速记录按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnQuickPee"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💧 记录排尿"
+        android:layout_marginBottom="8dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/emptyView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="暂无排尿记录"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:layout_marginTop="40dp" />
+</LinearLayout>

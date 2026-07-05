@@ -98,7 +98,7 @@ object ChartDrawer {
             }
 
             if (sideBySide) {
-                // ─── 左右并排模式 ───
+                // ─── 左右并排模式，每根柱子带独立数值标签 ───
                 val row = LinearLayout(ctx).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.BOTTOM
@@ -107,44 +107,61 @@ object ChartDrawer {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     )
                 }
-                // 左柱（分类1）
-                val bar1 = View(ctx).apply {
-                    val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
-                    layoutParams = LinearLayout.LayoutParams(0, h.coerceAtLeast(2), 1f)
-                    background = GradientDrawable().apply {
-                        setColor(barC1)
-                        cornerRadius = 4f * density
-                    }
-                }
-                // 右柱（分类2）
-                val bar2 = View(ctx).apply {
-                    val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
-                    layoutParams = LinearLayout.LayoutParams(0, h.coerceAtLeast(2), 1f)
-                    background = GradientDrawable().apply {
-                        setColor(barC2)
-                        cornerRadius = 4f * density
-                    }
-                }
-                row.addView(bar1)
-                row.addView(bar2)
 
-                // 数值标签
+                // 左柱（分类1）
+                val leftCol = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
                 if (v1 > 0) {
-                    col.addView(TextView(ctx).apply {
+                    leftCol.addView(TextView(ctx).apply {
                         text = v1.toString()
                         textSize = 8f
                         gravity = Gravity.CENTER
                         setTextColor(labelC1)
                     })
                 }
+                val bar1 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, h.coerceAtLeast(2)
+                    )
+                    background = GradientDrawable().apply {
+                        setColor(barC1)
+                        cornerRadius = 4f * density
+                    }
+                }
+                leftCol.addView(bar1)
+                row.addView(leftCol)
+
+                // 右柱（分类2）
+                val rightCol = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
                 if (v2 > 0) {
-                    col.addView(TextView(ctx).apply {
+                    rightCol.addView(TextView(ctx).apply {
                         text = v2.toString()
                         textSize = 8f
                         gravity = Gravity.CENTER
                         setTextColor(labelC2)
                     })
                 }
+                val bar2 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, h.coerceAtLeast(2)
+                    )
+                    background = GradientDrawable().apply {
+                        setColor(barC2)
+                        cornerRadius = 4f * density
+                    }
+                }
+                rightCol.addView(bar2)
+                row.addView(rightCol)
+
                 col.addView(row)
             } else {
                 // ─── 上下堆叠模式（原逻辑） ───

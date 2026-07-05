@@ -1,151 +1,79 @@
 // BabyCare/app/src/main/java/com/babycare/ui/ExcreteRecordsFragment.kt
 package com.babycare.ui
 
-import android.app.AlertDialog
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.babycare.BabyCareApp
 import com.babycare.data.ExcreteRecord
 import com.babycare.databinding.FragmentExcreteRecordsBinding
-import com.babycare.util.AgeCalculator
-import com.babycare.util.ChartDrawer
 import com.babycare.util.ExportUtil
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.TimeUnit
 
 class ExcreteRecordsFragment : Fragment() {
-
     private var _binding: FragmentExcreteRecordsBinding? = null
     private val binding get() = _binding!!
-
-    private val excreteDao by lazy {
-        (requireActivity().application as BabyCareApp).database.excreteDao()
-    }
-
-    private val adapter = ExcreteAdapter { record -> deleteRecord(record) }
-    private var chartDays = 7
+    private val excreteDao by lazy { (requireActivity().application as BabyCareApp).database.excreteDao() }
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) importRecords(uri)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    private val TAGS = arrayOf("bowel", "pee", "chart")
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentExcreteRecordsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerView.adapter = adapter
-
+        setupTabs()
         binding.btnExport.setOnClickListener { exportRecords() }
         binding.btnImport.setOnClickListener { importLauncher.launch("application/json") }
-        binding.btnBowel.setOnClickListener { showBowelDialog() }
-        binding.btnPee.setOnClickListener { addPeeRecord() }
-
-        // 图表天数选择
-        binding.rgChartDays.setOnCheckedChangeListener { _, checkedId ->
-            chartDays = when (checkedId) {
-                com.babycare.R.id.rbChart15d -> 15
-                com.babycare.R.id.rbChart30d -> 30
-                else -> 7
-            }
-            drawChart()
-        }
-
-        lifecycleScope.launch {
-            excreteDao.getAll().collect { records ->
-                adapter.submitList(records)
-                binding.emptyView.visibility = if (records.isEmpty()) View.VISIBLE else View.GONE
-            }
-        }
-
-        refreshDailyStats()
-        drawChart()
     }
 
-    private fun refreshDailyStats() {
-        lifecycleScope.launch {
-            val (start, end) = AgeCalculator.getTodayRange()
-            val bowel = excreteDao.getBowelCountBetween(start, end)
-            val pee = excreteDao.getPeeCountBetween(start, end)
-            binding.tvTodayBowel.text = bowel.toString()
-            binding.tvTodayPee.text = pee.toString()
+    private fun setupTabs() {
+        with(binding.tabLayout) {
+            addTab(newTab().setText("💩 排便"))
+            addTab(newTab().setText("💧 排尿"))
+            addTab(newTab().setText("📊 趋势图"))
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
         }
+        switchFragment(0)
     }
 
-    private fun drawChart() {
-        lifecycleScope.launch {
-            val end = System.currentTimeMillis()
-            val start = AgeCalculator.getPastDaysStart(chartDays - 1)
-            val records = excreteDao.getExcretesBetween(start, end)
-
-            val sdf = SimpleDateFormat("MM/dd", Locale.getDefault())
-            val dailyData = mutableMapOf<String, Pair<Int, Int>>()
-            for (i in (chartDays - 1) downTo 0) {
-                val cal = Calendar.getInstance().apply {
-                    timeInMillis = end
-                    add(Calendar.DAY_OF_MONTH, -i)
-                }
-                dailyData[sdf.format(cal.time)] = Pair(0, 0)
+    private fun switchFragment(position: Int) {
+        val tag = TAGS[position]
+        var fragment = childFragmentManager.findFragmentByTag(tag)
+        if (fragment == null) {
+            fragment = when (position) {
+                0 -> ExcreteBowelFragment()
+                1 -> ExcretePeeFragment()
+                2 -> ExcreteChartFragment()
+                else -> ExcreteBowelFragment()
             }
-            for (r in records) {
-                val key = sdf.format(Date(r.timestamp))
-                val (bowel, pee) = dailyData[key] ?: Pair(0, 0)
-                if (r.type == "bowel") {
-                    dailyData[key] = Pair(bowel + 1, pee)
-                } else {
-                    dailyData[key] = Pair(bowel, pee + 1)
-                }
-            }
-
-            val totalBowel = dailyData.values.sumOf { it.first }
-            val totalPee = dailyData.values.sumOf { it.second }
-
-            ChartDrawer.draw(ChartDrawer.ChartConfig(
-                context = requireContext(),
-                chartContainer = binding.layoutChart,
-                columnsContainer = binding.chartColumns,
-                dailyData = dailyData,
-                chartDays = chartDays,
-                density = resources.displayMetrics.density,
-                barColor1 = 0xFF795548.toInt(),   // 排便（左，棕色）
-                barColor2 = 0xFF1976D2.toInt(),   // 排尿（右，蓝色）
-                labelColor1 = 0xFF795548.toInt(),
-                labelColor2 = 0xFF1976D2.toInt(),
-                legendFormat = "● 排便 %d 次    ■ 排尿 %d 次",
-                total1 = totalBowel,
-                total2 = totalPee,
-                sideBySide = true
-            ))
-
-            binding.tvChartLegend.text = "● 排便 $totalBowel 次    ■ 排尿 $totalPee 次"
+            childFragmentManager.beginTransaction()
+                .add(binding.childContainer.id, fragment, tag)
+                .commit()
         }
-    }
-
-    private fun deleteRecord(record: ExcreteRecord) {
-        lifecycleScope.launch {
-            excreteDao.delete(record)
-            refreshDailyStats()
-            drawChart()
+        val ft = childFragmentManager.beginTransaction()
+        for (t in TAGS) {
+            childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
+        ft.show(fragment)
+        ft.commit()
     }
 
     private fun exportRecords() {
@@ -169,127 +97,11 @@ class ExcreteRecordsFragment : Fragment() {
             }
             excreteDao.insertAll(records)
             Toast.makeText(requireContext(), "导入成功：${records.size} 条记录", Toast.LENGTH_SHORT).show()
-            refreshDailyStats()
-            drawChart()
-        }
-    }
-
-    private fun showBowelDialog() {
-        val options = arrayOf("🟤 正常", "🟡 稀便", "🟠 干硬")
-        val states = arrayOf("normal", "loose", "hard")
-
-        val noteInput = EditText(requireContext()).apply {
-            hint = "备注（可选）"
-            setTextColor(resources.getColor(android.R.color.black, null))
-        }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("选择大便状态")
-            .setView(noteInput)
-            .setItems(options) { _, which ->
-                addExcreteRecord("bowel", states[which], noteInput.text.toString().takeIf { it.isNotBlank() })
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    private fun addPeeRecord() {
-        val noteInput = EditText(requireContext()).apply {
-            hint = "备注（可选）"
-            setTextColor(resources.getColor(android.R.color.black, null))
-        }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("💧 排尿记录")
-            .setView(noteInput)
-            .setPositiveButton("确认") { _, _ ->
-                addExcreteRecord("pee", null, noteInput.text.toString().takeIf { it.isNotBlank() })
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    private fun addExcreteRecord(type: String, state: String?, note: String?) {
-        lifecycleScope.launch {
-            val latest = excreteDao.getLatest()
-            val now = System.currentTimeMillis()
-            val diff = latest?.let { now - it.timestamp }
-            val record = ExcreteRecord(
-                type = type,
-                state = state,
-                note = note,
-                timestamp = now,
-                diff = diff
-            )
-            excreteDao.insert(record)
-            val label = if (type == "pee") "排尿" else "排便"
-            Toast.makeText(requireContext(), "已记录$label", Toast.LENGTH_SHORT).show()
-            refreshDailyStats()
-            drawChart()
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    // ─── 适配器 ──────────────────────────────────────────
-
-    inner class ExcreteAdapter(
-        private val onDelete: (ExcreteRecord) -> Unit
-    ) : RecyclerView.Adapter<ExcreteAdapter.ViewHolder>() {
-
-        private var records = emptyList<ExcreteRecord>()
-
-        fun submitList(list: List<ExcreteRecord>) {
-            records = list
-            notifyDataSetChanged()
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val itemBinding = com.babycare.databinding.ItemRecordBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            return ViewHolder(itemBinding)
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.bind(records[position])
-        }
-
-        override fun getItemCount() = records.size
-
-        inner class ViewHolder(private val binding: com.babycare.databinding.ItemRecordBinding) :
-            RecyclerView.ViewHolder(binding.root) {
-
-            fun bind(record: ExcreteRecord) {
-                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                binding.tvTime.text = sdf.format(Date(record.timestamp))
-
-                val typeLabel = when (record.type) {
-                    "pee" -> "💧 小便"
-                    else -> {
-                        val stateMap = mapOf(
-                            "normal" to "🟤 正常",
-                            "loose" to "🟡 稀便",
-                            "hard" to "🟠 干硬"
-                        )
-                        "💩 大便 (${stateMap[record.state] ?: record.state})"
-                    }
-                }
-                val notePart = if (!record.note.isNullOrBlank()) " · ${record.note}" else ""
-                binding.tvDetail.text = "$typeLabel$notePart"
-
-                val diffStr = record.diff?.let {
-                    val minutes = TimeUnit.MILLISECONDS.toMinutes(it)
-                    val hours = minutes / 60
-                    if (hours > 0) "距上次: ${hours}小时${minutes % 60}分钟" else "距上次: $minutes 分钟"
-                } ?: ""
-                binding.tvInterval.text = diffStr
-
-                binding.btnDelete.setOnClickListener { onDelete(record) }
-            }
-        }
     }
 }

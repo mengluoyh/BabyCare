@@ -123,6 +123,37 @@ interface ExcreteDao {
     suspend fun deleteAll()
 }
 
+@Entity(tableName = "vaccination_records")
+data class VaccinationRecord(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val vaccineName: String,
+    val vaccinationTime: Long,
+    val nextVaccinationTime: Long? = null,
+    val isLocked: Boolean = false,
+    val note: String? = null
+)
+
+@Dao
+interface VaccineDao {
+    @Upsert
+    suspend fun upsert(record: VaccinationRecord)
+
+    @Insert
+    suspend fun insertAll(records: List<VaccinationRecord>)
+
+    @Query("SELECT * FROM vaccination_records ORDER BY vaccinationTime DESC")
+    suspend fun getAllSnapshot(): List<VaccinationRecord>
+
+    @Query("SELECT * FROM vaccination_records WHERE id = :id")
+    suspend fun getById(id: Int): VaccinationRecord?
+
+    @Delete
+    suspend fun delete(record: VaccinationRecord)
+
+    @Query("DELETE FROM vaccination_records")
+    suspend fun deleteAll()
+}
+
 @Dao
 interface BabyDao {
     @Query("SELECT * FROM baby_profile WHERE id = 1")
@@ -138,14 +169,15 @@ interface BabyDao {
 // ─── Database ───────────────────────────────────────────
 
 @Database(
-    entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class],
-    version = 4,
+    entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun babyDao(): BabyDao
     abstract fun feedingDao(): FeedingDao
     abstract fun excreteDao(): ExcreteDao
+    abstract fun vaccineDao(): VaccineDao
 
     companion object {
         @Volatile
@@ -175,6 +207,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4→v5：新增 vaccination_records 表 */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `vaccination_records` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`vaccineName` TEXT NOT NULL, " +
+                        "`vaccinationTime` INTEGER NOT NULL, " +
+                        "`nextVaccinationTime` INTEGER, " +
+                        "`isLocked` INTEGER NOT NULL DEFAULT 0, " +
+                        "`note` TEXT)")
+                android.util.Log.w("AppDatabase", "Migration 4->5: added vaccination_records table")
+            }
+        }
+
         /** v3→v4：修复之前错误的 MIGRATION_1_2（原为空操作），重建 baby_profile 移除残留列 */
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -199,7 +245,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

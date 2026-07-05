@@ -133,7 +133,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ─── 距上次喂养时间卡片 ─── -->
+            <!-- ─── 上次喂养卡片 ─── -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -149,7 +149,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⏱️ 距上次喂养"
+                        android:text="⌛ 上次喂养"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/on_background" />
@@ -165,17 +165,18 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <TextView
-                                android:id="@+id/tvTimeSinceBreast"
+                                android:id="@+id/tvLastBreastTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="--:--:--"
+                                android:text="--:--"
                                 android:textSize="28sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/secondary" />
                             <TextView
+                                android:id="@+id/tvLastBreastDetail"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🤱 距上次母乳"
+                                android:text="🤱 上次母乳"
                                 android:textSize="13sp"
                                 android:textColor="@color/on_surface_variant"
                                 android:layout_marginTop="2dp" />
@@ -187,17 +188,18 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <TextView
-                                android:id="@+id/tvTimeSinceFormula"
+                                android:id="@+id/tvLastFormulaTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="--:--:--"
+                                android:text="--:--"
                                 android:textSize="28sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/warm_orange" />
                             <TextView
+                                android:id="@+id/tvLastFormulaDetail"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🍼 距上次配方奶"
+                                android:text="🍼 上次配方奶"
                                 android:textSize="13sp"
                                 android:textColor="@color/on_surface_variant"
                                 android:layout_marginTop="2dp" />

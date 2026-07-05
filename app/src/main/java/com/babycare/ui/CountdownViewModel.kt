@@ -212,25 +212,44 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     val formula = all.firstOrNull { it.feedType == "formula" }?.timestamp ?: 0L
                     Pair(breast, formula)
                 }
+                val now = System.currentTimeMillis()
+                val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+                val breastTimeStr = if (breastTs > 0) sdf.format(Date(breastTs)) else "--:--"
+                val breastDetail = if (breastTs > 0) {
+                    val elapsed = now - breastTs
+                    formatDurationBrief(elapsed)
+                } else "暂无记录"
+
+                val formulaTimeStr = if (formulaTs > 0) sdf.format(Date(formulaTs)) else "--:--"
+                val formulaDetail = if (formulaTs > 0) {
+                    val elapsed = now - formulaTs
+                    formatDurationBrief(elapsed)
+                } else "暂无记录"
+
                 updateState {
                     copy(
-                        timeSinceBreast = formatElapsed(breastTs),
-                        timeSinceFormula = formatElapsed(formulaTs)
+                        lastBreastTime = breastTimeStr,
+                        lastBreastDetail = breastDetail,
+                        lastFormulaTime = formulaTimeStr,
+                        lastFormulaDetail = formulaDetail
                     )
                 }
-                delay(1000)
+                delay(60_000) // 每分钟更新一次即可
             }
         }
     }
 
-    private fun formatElapsed(timestamp: Long): String {
-        if (timestamp <= 0) return "--:--:--"
-        val elapsed = System.currentTimeMillis() - timestamp
-        val totalSec = elapsed / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return String.format("%02d:%02d:%02d", h, m, s)
+    /** 格式化为"x小时x分钟前"或"x分钟前" */
+    private fun formatDurationBrief(ms: Long): String {
+        val totalMin = ms / 60_000
+        val hours = totalMin / 60
+        val mins = totalMin % 60
+        return when {
+            hours > 0 -> "${hours}小时${mins}分钟前"
+            mins > 0 -> "${mins}分钟前"
+            else -> "刚刚"
+        }
     }
 
     override fun onCleared() {
@@ -373,8 +392,10 @@ data class CountdownUiState(
     val todayFormulaAmount: Int = 0,
     val suggestedFormula: String = "-- ml",
     val formulaRemaining: String = "",
-    val timeSinceBreast: String = "--:--:--",
-    val timeSinceFormula: String = "--:--:--",
+    val lastBreastTime: String = "--:--",
+    val lastBreastDetail: String = "暂无记录",
+    val lastFormulaTime: String = "--:--",
+    val lastFormulaDetail: String = "暂无记录",
     val isAudioBarVisible: Boolean = false
 )
 

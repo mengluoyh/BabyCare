@@ -122,6 +122,13 @@ class TimerFragment : Fragment() {
                     binding.tvTodayBreastCount.text = state.todayBreastCount.toString()
                     binding.tvTodayFormulaAmount.text = state.todayFormulaAmount.toString()
                     binding.tvSuggestedFormula.text = state.suggestedFormula
+                    // 配方奶差额
+                    binding.tvFormulaRemaining.text = state.formulaRemaining
+                    // 上次喂养
+                    binding.tvLastBreastTime.text = state.lastBreastTime
+                    binding.tvLastBreastDetail.text = "🤱 上次母乳 · ${state.lastBreastDetail}"
+                    binding.tvLastFormulaTime.text = state.lastFormulaTime
+                    binding.tvLastFormulaDetail.text = "🍼 上次配方奶 · ${state.lastFormulaDetail}"
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
                     binding.btnPause.isEnabled = state.isPauseEnabled
                 }
