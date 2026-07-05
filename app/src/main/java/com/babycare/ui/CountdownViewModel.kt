@@ -396,8 +396,7 @@ data class CountdownUiState(
     val lastBreastTime: String = "--:--",
     val lastBreastDetail: String = "暂无记录",
     val lastFormulaTime: String = "--:--",
-    val lastFormulaDetail: String = "暂无记录",
-    val isAudioBarVisible: Boolean = false
+    val lastFormulaDetail: String = "暂无记录"
 )
 
 sealed class CountdownEvent {

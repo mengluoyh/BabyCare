@@ -1,7 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/SettingsFragment.kt
 package com.babycare.ui
 
-import android.app.AlertDialog
+import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -119,9 +119,9 @@ class SettingsFragment : Fragment() {
             return
         }
         val names = files.map { it.name }.toTypedArray()
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("选择备份文件恢复")
-            .setItems(names) { _, which ->
+            .setItems(names) { _: DialogInterface?, which: Int ->
                 doRestore(files[which])
             }
             .setNegativeButton("取消", null)
@@ -129,10 +129,10 @@ class SettingsFragment : Fragment() {
     }
 
     private fun doRestore(file: java.io.File) {
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("确认恢复")
             .setMessage("恢复操作会添加备份中的记录到现有数据中，确定继续？")
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton("确定") { _: DialogInterface?, _: Int ->
                 binding.tvSyncStatus.text = "⏳ 恢复中..."
                 lifecycleScope.launch {
                     val result = BackupManager.restoreFromFile(file)
@@ -170,7 +170,9 @@ class SettingsFragment : Fragment() {
                 if (data.feedingRecords.isNotEmpty()) db.feedingDao().insertAll(data.feedingRecords)
                 if (data.excreteRecords.isNotEmpty()) db.excreteDao().insertAll(data.excreteRecords)
                 data.babyProfile?.let { db.babyDao().upsertProfile(it) }
-                val msg = "恢复成功:${data.feedingRecords.size}条喂养,${data.excreteRecords.size}条排泄"
+                if (data.weightRecords.isNotEmpty()) data.weightRecords.forEach { db.weightDao().insert(it) }
+                if (data.vaccinationRecords.isNotEmpty()) db.vaccineDao().insertAll(data.vaccinationRecords)
+                val msg = "恢复成功:${data.feedingRecords.size}条喂养,${data.excreteRecords.size}条排泄,${data.weightRecords.size}条体重,${data.vaccinationRecords.size}条疫苗"
                 binding.tvSyncStatus.text = "✅ $msg"
                 Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
             } catch (e: Exception) {

@@ -1,8 +1,8 @@
 // BabyCare/app/src/main/java/com/babycare/ui/TimerFragment.kt
 package com.babycare.ui
 
-import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -35,7 +35,7 @@ class TimerFragment : Fragment() {
     private val viewModel: CountdownViewModel by viewModels()
 
     private var mediaPlayer: android.media.MediaPlayer? = null
-    private var alertDialog: AlertDialog? = null
+    private var alertDialog: androidx.appcompat.app.AlertDialog? = null
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -190,11 +190,11 @@ class TimerFragment : Fragment() {
         }
         binding.audioControlBar.visibility = View.VISIBLE
 
-        alertDialog = AlertDialog.Builder(requireContext())
+        alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("🍼 喂奶时间到！")
             .setMessage("宝宝该喂奶了")
             .setCancelable(false)
-            .setPositiveButton("我知道了") { _, _ -> dismissAlert() }
+            .setPositiveButton("我知道了") { _: DialogInterface?, _: Int -> dismissAlert() }
             .create()
             .also { it.show() }
     }
@@ -222,15 +222,15 @@ class TimerFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        CountdownNotificationHelper.cancel(requireContext())
         handler.removeCallbacksAndMessages(null)
         stopAudio()
         alertDialog?.dismiss()
         alertDialog = null
-        CountdownNotificationHelper.cancel(requireContext())
         CountdownNotificationReceiver.onPause = null
         CountdownNotificationReceiver.onResume = null
         CountdownNotificationReceiver.onClear = null
         _binding = null
+        super.onDestroyView()
     }
 }
