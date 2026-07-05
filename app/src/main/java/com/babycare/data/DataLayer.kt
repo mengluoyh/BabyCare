@@ -133,6 +133,13 @@ data class VaccinationRecord(
     val note: String? = null
 )
 
+@Entity(tableName = "weight_records")
+data class WeightRecord(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val weight: Float,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface VaccineDao {
     @Upsert
@@ -155,6 +162,21 @@ interface VaccineDao {
 }
 
 @Dao
+interface WeightDao {
+    @Insert
+    suspend fun insert(record: WeightRecord)
+
+    @Query("SELECT * FROM weight_records ORDER BY timestamp ASC")
+    suspend fun getAll(): List<WeightRecord>
+
+    @Query("SELECT * FROM weight_records ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatest(): WeightRecord?
+
+    @Delete
+    suspend fun delete(record: WeightRecord)
+}
+
+@Dao
 interface BabyDao {
     @Query("SELECT * FROM baby_profile WHERE id = 1")
     fun getProfile(): Flow<BabyProfile?>
@@ -169,8 +191,8 @@ interface BabyDao {
 // ─── Database ───────────────────────────────────────────
 
 @Database(
-    entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class],
-    version = 5,
+    entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class, WeightRecord::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -178,6 +200,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun feedingDao(): FeedingDao
     abstract fun excreteDao(): ExcreteDao
     abstract fun vaccineDao(): VaccineDao
+    abstract fun weightDao(): WeightDao
 
     companion object {
         @Volatile
@@ -239,13 +262,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v5→v6：新增 weight_records 表 */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `weight_records` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`weight` REAL NOT NULL, " +
+                        "`timestamp` INTEGER NOT NULL DEFAULT (strftime('%s','now')*1000))")
+                android.util.Log.w("AppDatabase", "Migration 5->6: added weight_records table")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

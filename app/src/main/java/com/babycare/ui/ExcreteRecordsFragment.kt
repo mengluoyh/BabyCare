@@ -43,7 +43,7 @@ class ExcreteRecordsFragment : Fragment() {
     private fun setupTabs() {
         with(binding.tabLayout) {
             addTab(newTab().setText("💩 排便"))
-            addTab(newTab().setText("💧 排泄详情"))
+            addTab(newTab().setText("💧 排尿"))
             addTab(newTab().setText("📊 趋势图"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }

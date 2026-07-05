@@ -29,8 +29,8 @@ class RecordsFragment : Fragment() {
 
     private fun setupTabs() {
         with(binding.tabLayout) {
-            addTab(newTab().setText("🍼 喂养记录"))
-            addTab(newTab().setText("💩 排泄记录"))
+            addTab(newTab().setText("🍼 喂养详情"))
+            addTab(newTab().setText("💩 排泄详情"))
             addTab(newTab().setText("✏️ 补录记录"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {

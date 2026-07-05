@@ -45,7 +45,7 @@ class FeedingRecordsFragment : Fragment() {
     private fun setupTabs() {
         with(binding.tabLayout) {
             addTab(newTab().setText("🤱 母乳"))
-            addTab(newTab().setText("🍼 喂养详情"))
+            addTab(newTab().setText("🍼 配方奶"))
             addTab(newTab().setText("📊 趋势图"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {

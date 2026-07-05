@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/babycare/ui/BabyGrowthFragment.kt
+// BabyCare/app/src/main/java/com/babycare/ui/BabyCareFragment.kt
 package com.babycare.ui
 
 import android.os.Bundle
@@ -6,41 +6,36 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.babycare.databinding.FragmentBabyGrowthBinding
+import com.babycare.databinding.FragmentBabyCareBinding
 import com.google.android.material.tabs.TabLayout
 
-/**
- * 成长/护理页面 — 顶部两个Tab：宝宝成长 / 宝宝护理
- * - 宝宝成长 → BabyGrowthContentFragment（出生信息+体重+疫苗接种卡片）
- * - 宝宝护理 → BabyCareFragment（体重趋势图+疫苗接种信息记录）
- */
-class BabyGrowthFragment : Fragment() {
-    private var _binding: FragmentBabyGrowthBinding? = null
+class BabyCareFragment : Fragment() {
+    private var _binding: FragmentBabyCareBinding? = null
     private val binding get() = _binding!!
 
-    private val TAGS = arrayOf("growth", "care")
+    private val TAGS = arrayOf("weight_trend", "vaccine")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = FragmentBabyGrowthBinding.inflate(inflater, container, false)
+        _binding = FragmentBabyCareBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupTabs()
-        switchFragment(0)
     }
 
     private fun setupTabs() {
         with(binding.tabLayout) {
-            addTab(newTab().setText("👶 宝宝成长"))
-            addTab(newTab().setText("🩺 宝宝护理"))
+            addTab(newTab().setText("⚖️ 体重趋势图"))
+            addTab(newTab().setText("💉 疫苗接种信息记录"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }
                 override fun onTabUnselected(tab: TabLayout.Tab?) {}
                 override fun onTabReselected(tab: TabLayout.Tab?) {}
             })
         }
+        switchFragment(0)
     }
 
     private fun switchFragment(position: Int) {
@@ -48,12 +43,12 @@ class BabyGrowthFragment : Fragment() {
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
             fragment = when (position) {
-                0 -> BabyGrowthContentFragment()
-                1 -> BabyCareFragment()
-                else -> BabyGrowthContentFragment()
+                0 -> WeightTrendFragment()
+                1 -> VaccinationRecordsFragment()
+                else -> WeightTrendFragment()
             }
             childFragmentManager.beginTransaction()
-                .add(binding.contentContainer.id, fragment, tag)
+                .add(binding.childContainer.id, fragment, tag)
                 .commit()
         }
         val ft = childFragmentManager.beginTransaction()
