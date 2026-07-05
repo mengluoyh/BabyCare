@@ -14,6 +14,7 @@ import com.babycare.data.BabyProfile
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentBabyGrowthBinding
 import com.babycare.util.AgeCalculator
+import android.graphics.Color as AndroidColor
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -39,6 +40,7 @@ class BabyGrowthFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupUI()
         loadBabyProfile()
+        applyCustomColors()
     }
 
     private fun loadBabyProfile() {
@@ -82,10 +84,44 @@ class BabyGrowthFragment : Fragment() {
     }
 
     private fun updateWeightUI() {
-        binding.tvWeight.text = if (weight > 0f) "%.1f kg".format(weight) else "-- kg"
+        val unit = settings.getWeightUnit()
+        val displayWeight = if (unit == "jin" && weight > 0f) weight * 2f else weight
+        val unitLabel = if (unit == "jin") "斤" else "kg"
+        binding.tvWeight.text = if (weight > 0f) "%.1f %s".format(displayWeight, unitLabel) else "-- $unitLabel"
         binding.btnLockWeight.text = if (weightLocked) "🔓 已锁定" else "🔒 锁定"
         binding.etWeightInput.isEnabled = !weightLocked
         binding.btnSaveWeight.isEnabled = !weightLocked
+        // 同步RadioGroup状态
+        if (unit == "jin") binding.rbWeightJin.isChecked = true else binding.rbWeightKg.isChecked = true
+    }
+
+    /** 应用自定义配色方案 */
+    private fun applyCustomColors() {
+        try {
+            val layoutColor = AndroidColor.parseColor(settings.getLayoutColor())
+            val fontColor = AndroidColor.parseColor(settings.getFontColor())
+            binding.root.setBackgroundColor(layoutColor)
+            for (i in 0 until (binding.root as? android.widget.ScrollView)?.childCount ?: 0) {
+                val child = (binding.root as android.widget.ScrollView).getChildAt(i)
+                applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun applyFontColorToViewGroup(group: android.view.ViewGroup?, color: Int) {
+        group?.let { g ->
+            for (i in 0 until g.childCount) {
+                val child = g.getChildAt(i)
+                if (child is android.widget.TextView) {
+                    if (child.currentTextColor != 0 && child.isEnabled) {
+                        try { child.setTextColor(color) } catch (_: Exception) {}
+                    }
+                }
+                if (child is android.view.ViewGroup) {
+                    applyFontColorToViewGroup(child, color)
+                }
+            }
+        }
     }
 
     private fun setupUI() {
@@ -113,6 +149,11 @@ class BabyGrowthFragment : Fragment() {
         // 体重
         binding.btnSaveWeight.setOnClickListener { saveWeight() }
         binding.btnLockWeight.setOnClickListener { toggleWeightLock() }
+        binding.rgWeightUnit.setOnCheckedChangeListener { _, checkedId ->
+            val unit = if (checkedId == com.babycare.R.id.rbWeightJin) "jin" else "kg"
+            settings.saveWeightUnit(unit)
+            updateWeightUI()
+        }
     }
 
     private fun showBirthDatePicker() {

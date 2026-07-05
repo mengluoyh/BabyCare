@@ -20,6 +20,8 @@ import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.service.AlarmScheduler
 import com.babycare.util.AgeCalculator
 import com.babycare.util.AudioPlayer
+import android.graphics.Color as AndroidColor
+import android.widget.ScrollView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,6 +55,59 @@ class TimerFragment : Fragment() {
         setupUI()
         restoreState()
         loadBabyProfile()
+        loadTodayStats()
+        applyCustomColors()
+    }
+
+    /** 加载今日喂养统计 */
+    private fun loadTodayStats() {
+        lifecycleScope.launch {
+            val calendar = Calendar.getInstance()
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val todayStart = calendar.timeInMillis
+            val todayEnd = todayStart + 86_400_000L // 到次日0点
+
+            val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
+            val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
+
+            binding.tvTodayBreastCount.text = breastCount.toString()
+            binding.tvTodayFormulaAmount.text = formulaTotal.toString()
+        }
+    }
+
+    /** 应用自定义配色方案 */
+    private fun applyCustomColors() {
+        try {
+            val layoutColor = AndroidColor.parseColor(settings.getLayoutColor())
+            val fontColor = AndroidColor.parseColor(settings.getFontColor())
+            // 设置ScrollView背景
+            binding.root.setBackgroundColor(layoutColor)
+            // 递归设置所有TextView的字体颜色（简化：仅顶层）
+            for (i in 0 until (binding.root as? android.widget.ScrollView)?.childCount ?: 0) {
+                val child = (binding.root as android.widget.ScrollView).getChildAt(i)
+                applyFontColorToViewGroup(child as? android.view.ViewGroup, fontColor)
+            }
+        } catch (_: Exception) { /* 颜色解析失败时使用默认值 */ }
+    }
+
+    private fun applyFontColorToViewGroup(group: android.view.ViewGroup?, color: Int) {
+        group?.let { g ->
+            for (i in 0 until g.childCount) {
+                val child = g.getChildAt(i)
+                if (child is android.widget.TextView) {
+                    // 只修改非链接、非按钮文本的颜色
+                    if (child.currentTextColor != 0 && child.isEnabled) {
+                        try { child.setTextColor(color) } catch (_: Exception) {}
+                    }
+                }
+                if (child is android.view.ViewGroup) {
+                    applyFontColorToViewGroup(child, color)
+                }
+            }
+        }
     }
 
     private fun setupUI() {
@@ -87,6 +142,7 @@ class TimerFragment : Fragment() {
             val feedType = if (isBreast) "breast" else "formula"
             val volume = if (!isBreast) binding.etVolume.text.toString().toIntOrNull() else null
             saveFeedingRecord("manual", feedType, volume)
+            loadTodayStats()
             cancelAlert()
             // 需求3：母乳不暂停也不重置，配方奶才重置并自动重开
             if (!isBreast) {
@@ -110,6 +166,23 @@ class TimerFragment : Fragment() {
         }
         binding.rbFormula.setOnCheckedChangeListener { _, checked ->
             if (checked) binding.etVolume.isEnabled = true
+        }
+
+        // ─── 自定义补录 ───
+        binding.rbCustomBreast.setOnCheckedChangeListener { _, checked ->
+            binding.etCustomVolume.isEnabled = !checked
+            if (checked) binding.etCustomVolume.text?.clear()
+        }
+        binding.rbCustomFormula.setOnCheckedChangeListener { _, checked ->
+            if (checked) binding.etCustomVolume.isEnabled = true
+        }
+        binding.btnSaveCustomRecord.setOnClickListener {
+            val isBreast = binding.rbCustomBreast.isChecked
+            val feedType = if (isBreast) "breast" else "formula"
+            val volume = if (!isBreast) binding.etCustomVolume.text.toString().toIntOrNull() else null
+            saveFeedingRecord("manual", feedType, volume)
+            binding.etCustomVolume.text?.clear()
+            loadTodayStats()
         }
 
         // 配方奶建议量保存

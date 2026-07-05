@@ -182,6 +182,25 @@
                     android:textStyle="bold"
                     android:textColor="@color/primary"
                     android:layout_marginTop="8dp" />
+                <RadioGroup
+                    android:id="@+id/rgWeightUnit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+                    <RadioButton
+                        android:id="@+id/rbWeightKg"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="kg"
+                        android:checked="true" />
+                    <RadioButton
+                        android:id="@+id/rbWeightJin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="斤"
+                        android:layout_marginStart="16dp" />
+                </RadioGroup>
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -194,7 +213,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:inputType="numberDecimal"
-                        android:hint="输入体重(kg)"
+                        android:hint="输入体重"
                         android:textSize="14sp" />
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSaveWeight"

@@ -334,5 +334,104 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ─── 颜色自定义卡片 ─── -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            app:contentPadding="16dp"
+            app:cardCornerRadius="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌈 界面颜色自定义"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="选择配色方案（重启界面后生效）"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="布局/字体/图表颜色"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+
+                <!-- 配色方案选项 -->
+                <RadioGroup
+                    android:id="@+id/rgColorScheme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
+                    <RadioButton
+                        android:id="@+id/rbColorOrange"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟠 温暖橙" />
+                    <RadioButton
+                        android:id="@+id/rbColorBlue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🔵 清新蓝" />
+                    <RadioButton
+                        android:id="@+id/rbColorPink"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🩷 甜美粉" />
+                </RadioGroup>
+                <RadioGroup
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <RadioButton
+                        android:id="@+id/rbColorGreen"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟢 自然绿" />
+                    <RadioButton
+                        android:id="@+id/rbColorPurple"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟣 优雅紫" />
+                    <RadioButton
+                        android:id="@+id/rbColorTeal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🔷 海洋青" />
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/tvCurrentColorScheme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="当前：🟠 温暖橙"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:textColor="@color/on_surface_variant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
     </LinearLayout>
 </ScrollView>

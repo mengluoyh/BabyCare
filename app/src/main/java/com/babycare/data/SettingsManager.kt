@@ -50,4 +50,22 @@ class SettingsManager(context: Context) {
 
     fun getLastWebDavSyncTime(): Long = prefs.getLong("webdav_last_sync", 0L)
     fun saveLastWebDavSyncTime(time: Long) = prefs.edit().putLong("webdav_last_sync", time).apply()
+
+    // ─── 体重单位: "kg" | "jin" ───
+    fun getWeightUnit(): String = prefs.getString("weight_unit", "kg") ?: "kg"
+    fun saveWeightUnit(unit: String) = prefs.edit().putString("weight_unit", unit).apply()
+
+    // ─── 布局颜色自定义（存储颜色十六进制字符串 #AARRGGBB） ───
+    fun getLayoutColor(): String = prefs.getString("layout_color", "#FFF8F0") ?: "#FFF8F0"
+    fun saveLayoutColor(color: String) = prefs.edit().putString("layout_color", color).apply()
+
+    fun getFontColor(): String = prefs.getString("font_color", "#201A17") ?: "#201A17"
+    fun saveFontColor(color: String) = prefs.edit().putString("font_color", color).apply()
+
+    fun getChartColor(): String = prefs.getString("chart_color", "#FF6B35") ?: "#FF6B35"
+    fun saveChartColor(color: String) = prefs.edit().putString("chart_color", color).apply()
+
+    // ─── 颜色方案名称（用于UI显示） ───
+    fun getColorScheme(): String = prefs.getString("color_scheme", "orange") ?: "orange"
+    fun saveColorScheme(scheme: String) = prefs.edit().putString("color_scheme", scheme).apply()
 }

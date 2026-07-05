@@ -1,9 +1,19 @@
 // BabyCare/app/src/main/java/com/babycare/MainActivity.kt
 package com.babycare
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.ActivityMainBinding
@@ -12,6 +22,9 @@ import com.babycare.ui.*
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var settings: SettingsManager
+    private companion object {
+        private const val REQUEST_STORAGE = 1001
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         settings = SettingsManager(this)
@@ -34,6 +47,57 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_settings -> loadFragment(SettingsFragment())
             }
             true
+        }
+
+        // 启动时申请存储权限
+        requestStoragePermission()
+    }
+
+    /**
+     * 申请存储权限：
+     * - Android 11+ (API 30+) : 使用 MANAGE_EXTERNAL_STORAGE，引导用户去系统设置
+     * - Android 10 及以下 : 动态请求 WRITE_EXTERNAL_STORAGE
+     */
+    private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ 需要 MANAGE_EXTERNAL_STORAGE
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                    Toast.makeText(this, "请在设置中允许「所有文件访问权限」以便备份数据", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    // 降级到应用详情页
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                }
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6-10 动态请求存储权限
+            val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+            if (ContextCompat.checkSelfPermission(this, permission)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this, arrayOf(permission), REQUEST_STORAGE
+                )
+            }
+        }
+        // Android 5.1 及以下无需动态请求
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_STORAGE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "存储权限已获取", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "存储权限被拒绝，部分功能可能受限", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
