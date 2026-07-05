@@ -21,6 +21,8 @@ object BackupManager {
         val feedingRecords: List<FeedingRecord> = emptyList(),
         val excreteRecords: List<ExcreteRecord> = emptyList(),
         val babyProfile: BabyProfile? = null,
+        val weightRecords: List<WeightRecord> = emptyList(),
+        val vaccinationRecords: List<VaccinationRecord> = emptyList(),
         val backupTime: Long = System.currentTimeMillis()
     )
 
@@ -55,7 +57,9 @@ object BackupManager {
             if (data.feedingRecords.isNotEmpty()) db.feedingDao().insertAll(data.feedingRecords)
             if (data.excreteRecords.isNotEmpty()) db.excreteDao().insertAll(data.excreteRecords)
             data.babyProfile?.let { db.babyDao().upsertProfile(it) }
-            Result.success("恢复成功:${data.feedingRecords.size}条喂养,${data.excreteRecords.size}条排泄")
+            if (data.weightRecords.isNotEmpty()) data.weightRecords.forEach { db.weightDao().insert(it) }
+            if (data.vaccinationRecords.isNotEmpty()) db.vaccineDao().insertAll(data.vaccinationRecords)
+            Result.success("恢复成功:${data.feedingRecords.size}条喂养,${data.excreteRecords.size}条排泄,${data.weightRecords.size}条体重,${data.vaccinationRecords.size}条疫苗")
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -69,6 +73,8 @@ object BackupManager {
             feedingRecords = db.feedingDao().getAllSnapshot(),
             excreteRecords = db.excreteDao().getAllSnapshot(),
             babyProfile = db.babyDao().getProfileSync(),
+            weightRecords = db.weightDao().getAllSnapshot(),
+            vaccinationRecords = db.vaccineDao().getAllSnapshot(),
             backupTime = System.currentTimeMillis()
         )
     }

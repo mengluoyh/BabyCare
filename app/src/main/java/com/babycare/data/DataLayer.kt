@@ -169,6 +169,9 @@ interface WeightDao {
     @Query("SELECT * FROM weight_records ORDER BY timestamp ASC")
     suspend fun getAll(): List<WeightRecord>
 
+    @Query("SELECT * FROM weight_records ORDER BY timestamp DESC")
+    suspend fun getAllSnapshot(): List<WeightRecord>
+
     @Query("SELECT * FROM weight_records ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): WeightRecord?
 

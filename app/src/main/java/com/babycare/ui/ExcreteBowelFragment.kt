@@ -1,7 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/ExcreteBowelFragment.kt
 package com.babycare.ui
 
-import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.babycare.BabyCareApp
+import com.babycare.R
 import com.babycare.data.ExcreteRecord
 import com.babycare.databinding.FragmentExcreteBowelBinding
 import kotlinx.coroutines.launch
@@ -51,9 +52,9 @@ class ExcreteBowelFragment : Fragment() {
         val states = arrayOf("normal", "loose", "hard")
         val noteInput = EditText(requireContext()).apply {
             hint = "备注（可选）"
-            setTextColor(resources.getColor(android.R.color.black, null))
+            setTextColor(resources.getColor(R.color.on_background, null))
         }
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("选择大便状态")
             .setView(noteInput)
             .setItems(options) { _, which ->
@@ -77,10 +78,10 @@ class ExcreteBowelFragment : Fragment() {
     }
 
     private fun deleteRecord(record: ExcreteRecord) {
-        AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("删除确认")
             .setMessage("确定删除此条排便记录？")
-            .setPositiveButton("删除") { _, _ ->
+            .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch { excreteDao.delete(record) }
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
             }

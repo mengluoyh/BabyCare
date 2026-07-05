@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.babycare.BabyCareApp
+import com.babycare.R
 import com.babycare.data.ExcreteRecord
 import com.babycare.databinding.FragmentExcretePeeBinding
 import kotlinx.coroutines.launch
@@ -49,7 +50,7 @@ class ExcretePeeFragment : Fragment() {
     private fun addPeeRecord() {
         val noteInput = EditText(requireContext()).apply {
             hint = "备注（可选）"
-            setTextColor(resources.getColor(android.R.color.black, null))
+            setTextColor(resources.getColor(R.color.on_background, null))
         }
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("💧 排尿记录")

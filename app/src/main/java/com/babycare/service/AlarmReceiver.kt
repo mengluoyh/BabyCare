@@ -19,7 +19,10 @@ class AlarmReceiver : BroadcastReceiver() {
                 channelId,
                 "喂奶提醒",
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                vibrationPattern = longArrayOf(0, 500, 200, 500)
+                enableVibration(true)
+            }
             nm.createNotificationChannel(channel)
         }
 
@@ -29,6 +32,8 @@ class AlarmReceiver : BroadcastReceiver() {
             .setContentText("宝宝该喂奶了")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
             .build()
 
         nm.notify(AlarmScheduler.NOTIFICATION_ID, notification)

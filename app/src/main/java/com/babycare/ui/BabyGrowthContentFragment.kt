@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.babycare.BabyCareApp
+import com.babycare.R
 import com.babycare.data.BabyProfile
 import com.babycare.data.SettingsManager
 import com.babycare.data.VaccinationRecord
@@ -328,8 +329,8 @@ class BabyGrowthContentFragment : Fragment() {
                 ).also { it.setMargins(0, 4, 0, 4) }
                 textSize = 13f
                 setPadding(8, 8, 8, 8)
-                setBackgroundColor(0x1A000000.toInt())
-                setTextColor(resources.getColor(android.R.color.black, null))
+                setBackgroundColor(requireContext().getColor(com.babycare.R.color.surface_variant))
+                setTextColor(requireContext().getColor(com.babycare.R.color.on_background))
             }
             return VH(tv)
         }
