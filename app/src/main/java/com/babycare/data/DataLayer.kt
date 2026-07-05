@@ -74,7 +74,7 @@ interface FeedingDao {
     @Insert
     suspend fun insert(record: FeedingRecord)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<FeedingRecord>)
 
     @Delete
@@ -113,7 +113,7 @@ interface ExcreteDao {
     @Insert
     suspend fun insert(record: ExcreteRecord)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ExcreteRecord>)
 
     @Delete
@@ -145,7 +145,7 @@ interface VaccineDao {
     @Upsert
     suspend fun upsert(record: VaccinationRecord)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<VaccinationRecord>)
 
     @Query("SELECT * FROM vaccination_records ORDER BY vaccinationTime DESC")
