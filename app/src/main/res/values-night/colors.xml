@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FF1A1400</color>
+    <color name="ic_launcher_foreground">#FF6B35</color>
+
+    <!-- Dark theme - Baby-themed Material3 palette -->
+    <color name="primary">#FF6B35</color>
+    <color name="on_primary">#FF3D1500</color>
+    <color name="primary_container">#FF4A2500</color>
+    <color name="on_primary_container">#FFDCC2</color>
+
+    <color name="secondary">#82B1FF</color>
+    <color name="on_secondary">#FF003258</color>
+    <color name="secondary_container">#FF00497D</color>
+    <color name="on_secondary_container">#FFCEE5FF</color>
+
+    <color name="tertiary">#CABDFF</color>
+    <color name="on_tertiary">#FF35009A</color>
+    <color name="tertiary_container">#FF4D00B5</color>
+    <color name="on_tertiary_container">#FFEADEFF</color>
+
+    <color name="error">#FFB3261E</color>
+    <color name="on_error">#FF601410</color>
+
+    <color name="background">#FF1A1411</color>
+    <color name="on_background">#FFF0EDE9</color>
+    <color name="surface">#FF1A1411</color>
+    <color name="on_surface">#FFF0EDE9</color>
+    <color name="surface_variant">#FF4F453B</color>
+    <color name="on_surface_variant">#FFD0C4B8</color>
+    <color name="outline">#FF9A8F83</color>
+
+    <!-- Baby colors for dark mode -->
+    <color name="baby_blue">#FF4A90D9</color>
+    <color name="baby_pink">#FFD94A6A</color>
+    <color name="baby_green">#FF4AD98A</color>
+    <color name="warm_orange">#FF6B35</color>
+
+    <!-- Adaptive icon backgrounds（dark） -->
+    <color name="icon_bg_blue">#FF0D1B2A</color>
+    <color name="icon_bg_pink">#FF2A0D1B</color>
+    <color name="icon_bg_green">#FF0D2A1B</color>
+    <color name="icon_bg_purple">#FF1B0D2A</color>
+    <color name="icon_bg_teal">#FF0D2A2A</color>
+</resources>

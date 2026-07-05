@@ -11,8 +11,8 @@ import androidx.fragment.app.Fragment
 import com.babycare.R
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
+import com.babycare.util.BackupManager
 import com.babycare.util.IconChanger
-import com.babycare.util.WebDavUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,36 +28,40 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        loadWebDavConfig()
+        loadBackupConfig()
         loadThemeConfig()
         loadIconConfig()
         setupUI()
     }
 
-    // ═══════════════════ WebDAV ═══════════════════
+    // ═══════════════════ 备份 ═══════════════════
 
-    private fun loadWebDavConfig() {
+    private fun loadBackupConfig() {
+        // WebDAV
         binding.etWebDavUrl.setText(settings.getWebDavUrl())
         binding.etWebDavUser.setText(settings.getWebDavUser())
         binding.etWebDavPass.setText(settings.getWebDavPass())
         binding.switchAutoSync.isChecked = settings.isWebDavAutoSync()
-        updateSyncStatus()
+        updateBackupStatus()
     }
 
-    private fun updateSyncStatus() {
+    private fun updateBackupStatus() {
         val lastSync = settings.getLastWebDavSyncTime()
-        if (lastSync > 0) {
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            binding.tvSyncStatus.text = "上次同步：${sdf.format(Date(lastSync))}"
-        } else {
-            binding.tvSyncStatus.text = "尚未备份"
-        }
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val text = if (lastSync > 0) "上次备份: ${sdf.format(Date(lastSync))}" else "尚未备份"
+        binding.tvSyncStatus.text = text
+
+        // 列出本地备份文件数
+        val localDir = java.io.File("/storage/emulated/0/BabyCare/backups")
+        val count = if (localDir.exists()) localDir.listFiles()?.filter { it.name.startsWith("babycare_backup_") }?.size ?: 0 else 0
+        binding.tvLocalBackupCount.text = if (count > 0) "本地备份文件: $count 个" else "暂无本地备份"
     }
 
     private fun setupUI() {
-        // ─── WebDAV ───
+        // ─── 备份 ───
         binding.btnWebDavSave.setOnClickListener { saveWebDavConfig() }
-        binding.btnWebDavBackup.setOnClickListener { doWebDavBackup() }
+        binding.btnBackupNow.setOnClickListener { doBackupAll() }
+        binding.btnLocalBackup.setOnClickListener { doLocalBackup() }
         binding.switchAutoSync.setOnCheckedChangeListener { _, checked ->
             settings.saveWebDavAutoSync(checked)
         }
@@ -70,12 +74,13 @@ class SettingsFragment : Fragment() {
                 else -> "system"
             }
             settings.saveThemeMode(mode)
-            val modeValue = when (mode) {
+            AppCompatDelegate.setDefaultNightMode(when (mode) {
                 "light" -> AppCompatDelegate.MODE_NIGHT_NO
                 "dark" -> AppCompatDelegate.MODE_NIGHT_YES
                 else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            }
-            AppCompatDelegate.setDefaultNightMode(modeValue)
+            })
+            // 立即重建Activity应用新主题
+            requireActivity().recreate()
         }
 
         // ─── 图标（6色） ───
@@ -103,18 +108,29 @@ class SettingsFragment : Fragment() {
         settings.saveWebDavUser(user)
         settings.saveWebDavPass(pass)
 
-        // 保存后自动备份
-        doWebDavBackup()
+        Toast.makeText(requireContext(), "配置已保存", Toast.LENGTH_SHORT).show()
     }
 
-    private fun doWebDavBackup() {
-        binding.btnWebDavBackup.isEnabled = false
+    private fun doBackupAll() {
+        binding.btnBackupNow.isEnabled = false
         binding.tvSyncStatus.text = "⏳ 正在备份..."
-        WebDavUtil.backup(requireContext()) { success, message ->
+        BackupManager.backupAll(requireContext()) { success, message ->
             requireActivity().runOnUiThread {
-                binding.btnWebDavBackup.isEnabled = true
+                binding.btnBackupNow.isEnabled = true
                 binding.tvSyncStatus.text = if (success) "✅ $message" else "❌ $message"
-                if (success) updateSyncStatus()
+                updateBackupStatus()
+            }
+        }
+    }
+
+    private fun doLocalBackup() {
+        binding.btnLocalBackup.isEnabled = false
+        binding.tvSyncStatus.text = "⏳ 本地备份中..."
+        BackupManager.localBackupOnly(requireContext()) { success, message ->
+            requireActivity().runOnUiThread {
+                binding.btnLocalBackup.isEnabled = true
+                binding.tvSyncStatus.text = if (success) "✅ $message" else "❌ $message"
+                updateBackupStatus()
             }
         }
     }

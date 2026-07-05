@@ -45,8 +45,46 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="☁️ WebDAV 备份"
+                    android:text="💾 数据备份"
                     android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_background" />
+
+                <!-- 备份操作 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBackupNow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🔄 立即备份（本地+云端）"
+                    android:layout_marginTop="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLocalBackup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📁 仅本地备份"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <TextView
+                    android:id="@+id/tvLocalBackupCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="暂无本地备份"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="4dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/outline"
+                    android:layout_marginVertical="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="☁️ WebDAV 配置"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="@color/on_background" />
 
@@ -104,23 +142,16 @@
                     android:text="保存配置"
                     style="@style/Widget.Material3.Button.TextButton" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnWebDavBackup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="☁️ 手动备份"
-                    android:layout_marginTop="4dp" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
+                    android:layout_marginTop="4dp">
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="自动备份"
+                        android:text="记录喂奶后自动备份"
                         android:textSize="14sp"
                         android:textColor="@color/on_background" />
                     <com.google.android.material.switchmaterial.SwitchMaterial

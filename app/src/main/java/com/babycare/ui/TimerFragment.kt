@@ -145,6 +145,15 @@ class TimerFragment : Fragment() {
             )
             feedingDao.insert(record)
             Toast.makeText(requireContext(), "已记录${if (feedType == "breast") "母乳" else "配方奶"}喂养", Toast.LENGTH_SHORT).show()
+            // 自动备份（如果开启了）
+            triggerAutoBackup()
+        }
+    }
+
+    /** 自动备份：如果开启了自动备份，则备份到本地+WebDAV */
+    private fun triggerAutoBackup() {
+        if (settings.isWebDavAutoSync()) {
+            com.babycare.util.BackupManager.backupAll(requireContext()) { _, _ -> }
         }
     }
 
