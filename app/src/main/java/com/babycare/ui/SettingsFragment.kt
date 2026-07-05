@@ -15,6 +15,7 @@ import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
 import com.babycare.util.IconChanger
+import com.babycare.util.WebDavManager
 import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
@@ -49,9 +50,15 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // ─── 备份 ───
+        // ─── 本地备份 ───
         binding.btnLocalBackup.setOnClickListener { doLocalBackup() }
         binding.btnRestoreBackup.setOnClickListener { showRestorePicker() }
+
+        // ─── WebDAV 远程备份 ───
+        loadWebDavConfig()
+        binding.btnWebDavSave.setOnClickListener { saveWebDavConfig() }
+        binding.btnWebDavUpload.setOnClickListener { uploadToWebDav() }
+        binding.btnWebDavDownload.setOnClickListener { downloadFromWebDav() }
 
         // ─── 主题 ───
         binding.rgThemeMode.setOnCheckedChangeListener { _, checkedId ->
@@ -129,6 +136,56 @@ class SettingsFragment : Fragment() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    private fun loadWebDavConfig() {
+        val config = WebDavManager.loadConfig(requireContext())
+        if (config != null) {
+            binding.etWebDavUrl.setText(config.url)
+            binding.etWebDavUser.setText(config.username)
+            binding.etWebDavPassword.setText(config.password)
+        }
+    }
+
+    private fun saveWebDavConfig() {
+        val url = binding.etWebDavUrl.text.toString().trim()
+        if (url.isBlank()) {
+            binding.tvWebDavStatus.text = "⚠️ 请输入服务器地址"
+            return
+        }
+        val username = binding.etWebDavUser.text.toString().trim()
+        val password = binding.etWebDavPassword.text.toString().trim()
+        WebDavManager.saveConfig(requireContext(), url, username, password)
+        binding.tvWebDavStatus.text = "✅ 配置已保存"
+    }
+
+    private fun uploadToWebDav() {
+        binding.btnWebDavUpload.isEnabled = false
+        binding.tvWebDavStatus.text = "⏳ 上传中..."
+        lifecycleScope.launch {
+            val result = WebDavManager.upload(requireContext())
+            binding.btnWebDavUpload.isEnabled = true
+            result.onSuccess { msg ->
+                binding.tvWebDavStatus.text = "✅ $msg"
+            }.onFailure { e ->
+                binding.tvWebDavStatus.text = "❌ ${e.message}"
+            }
+        }
+    }
+
+    private fun downloadFromWebDav() {
+        binding.btnWebDavDownload.isEnabled = false
+        binding.tvWebDavStatus.text = "⏳ 下载恢复中..."
+        lifecycleScope.launch {
+            val result = WebDavManager.downloadAndRestore(requireContext())
+            binding.btnWebDavDownload.isEnabled = true
+            result.onSuccess { msg ->
+                binding.tvWebDavStatus.text = "✅ $msg"
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+            }.onFailure { e ->
+                binding.tvWebDavStatus.text = "❌ ${e.message}"
+            }
+        }
     }
 
     // ═══════════════════ 主题 ═══════════════════

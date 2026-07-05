@@ -48,6 +48,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private var intervalMinutes: Int = 180
     private var birthDate: Long = 0
     private var countDownJob: kotlinx.coroutines.Job? = null
+    private var timeSinceJob: kotlinx.coroutines.Job? = null
 
     init {
         intervalMinutes = settings.getInterval()
@@ -167,9 +168,74 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    private fun refreshTodayStats() {
+        viewModelScope.launch {
+            val (todayStart, todayEnd) = AgeCalculator.getTodayRange()
+            val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
+            val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
+
+            // 计算配方奶差额
+            val suggestedInt = settings.getCustomFormulaSuggestion().let {
+                if (it > 0) it else {
+                    if (birthDate > 0) {
+                        val (months, _, _) = AgeCalculator.calculateAge(birthDate)
+                        AgeCalculator.getSuggestedFormula(months)
+                    } else 0
+                }
+            }
+            val remaining = if (suggestedInt > 0) {
+                val diff = suggestedInt - formulaTotal
+                if (diff > 0) "还差 ${diff}ml" else "✅ 已达标"
+            } else ""
+
+            updateState {
+                copy(
+                    todayBreastCount = breastCount,
+                    todayFormulaAmount = formulaTotal,
+                    formulaRemaining = remaining
+                )
+            }
+
+            // 启动距上次喂奶计时
+            startTimeSinceTracking()
+        }
+    }
+
+    private fun startTimeSinceTracking() {
+        timeSinceJob?.cancel()
+        timeSinceJob = viewModelScope.launch {
+            while (true) {
+                val (breastTs, formulaTs) = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val all = feedingDao.getAllSnapshot()
+                    val breast = all.firstOrNull { it.feedType == "breast" }?.timestamp ?: 0L
+                    val formula = all.firstOrNull { it.feedType == "formula" }?.timestamp ?: 0L
+                    Pair(breast, formula)
+                }
+                updateState {
+                    copy(
+                        timeSinceBreast = formatElapsed(breastTs),
+                        timeSinceFormula = formatElapsed(formulaTs)
+                    )
+                }
+                delay(1000)
+            }
+        }
+    }
+
+    private fun formatElapsed(timestamp: Long): String {
+        if (timestamp <= 0) return "--:--:--"
+        val elapsed = System.currentTimeMillis() - timestamp
+        val totalSec = elapsed / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return String.format("%02d:%02d:%02d", h, m, s)
+    }
+
     override fun onCleared() {
         super.onCleared()
         cancelTimer()
+        timeSinceJob?.cancel()
     }
 
     // ═══════════════════ 内部方法 ═══════════════════
@@ -288,15 +354,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         updateState { copy(suggestedFormula = "$suggested ml") }
     }
 
-    private fun refreshTodayStats() {
-        viewModelScope.launch {
-            val (todayStart, todayEnd) = AgeCalculator.getTodayRange()
-            val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
-            val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
-            updateState { copy(todayBreastCount = breastCount, todayFormulaAmount = formulaTotal) }
-        }
-    }
-
     private fun updateState(transform: CountdownUiState.() -> CountdownUiState) {
         _uiState.value = _uiState.value.transform()
     }
@@ -314,6 +371,9 @@ data class CountdownUiState(
     val todayBreastCount: Int = 0,
     val todayFormulaAmount: Int = 0,
     val suggestedFormula: String = "-- ml",
+    val formulaRemaining: String = "",
+    val timeSinceBreast: String = "--:--:--",
+    val timeSinceFormula: String = "--:--:--",
     val isAudioBarVisible: Boolean = false
 )
 

@@ -116,10 +116,10 @@ class FeedingRecordsFragment : Fragment() {
                 dailyData = dailyData,
                 chartDays = chartDays,
                 density = resources.displayMetrics.density,
-                barColor1 = 0xFFE65100.toInt(),   // 配方奶（底部，橙色）
-                barColor2 = 0xFF1976D2.toInt(),   // 母乳（顶部，蓝色）
-                labelColor1 = 0xFFE65100.toInt(),
-                labelColor2 = 0xFF1976D2.toInt(),
+                barColor1 = 0xFF1976D2.toInt(),   // 母乳（底部，蓝色）← Pair.first = 母乳次数
+                barColor2 = 0xFFE65100.toInt(),   // 配方奶（顶部，橙色）← Pair.second = 配方奶量
+                labelColor1 = 0xFF1976D2.toInt(),
+                labelColor2 = 0xFFE65100.toInt(),
                 legendFormat = "● 母乳 %d 次    ■ 配方奶 %d ml",
                 total1 = totalBreast,
                 total2 = totalFormula
