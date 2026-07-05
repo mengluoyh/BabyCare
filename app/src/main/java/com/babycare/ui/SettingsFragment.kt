@@ -121,14 +121,21 @@ class SettingsFragment : Fragment() {
             val localResult = BackupManager.backupAll(requireContext())
             val webdavResult = WebDavManager.upload(requireContext())
 
-            val sb = StringBuilder()
-            localResult.onSuccess { sb.append("✅ 本地$it") }
-                .onFailure { sb.append("❌ 本地备份失败:${it.message}") }
-            sb.append(" | ")
-            webdavResult.onSuccess { sb.append("✅ 远程$it") }
-                .onFailure { sb.append("❌ 远程同步失败:${it.message}") }
+            val localOk = localResult.isSuccess
+            val remoteOk = webdavResult.isSuccess
 
-            binding.tvSyncStatus.text = sb.toString()
+            if (localOk && remoteOk) {
+                binding.tvSyncStatus.text = "✅ 本地备份 + 远程同步备份成功"
+                Toast.makeText(requireContext(), "✅ 本地备份 + 远程同步备份成功", Toast.LENGTH_LONG).show()
+            } else {
+                val sb = StringBuilder()
+                localResult.onSuccess { sb.append("✅ 本地$it") }
+                    .onFailure { sb.append("❌ 本地备份失败:${it.message}") }
+                sb.append(" | ")
+                webdavResult.onSuccess { sb.append("✅ 远程$it") }
+                    .onFailure { sb.append("❌ 远程同步失败:${it.message}") }
+                binding.tvSyncStatus.text = sb.toString()
+            }
             updateBackupStatus()
             binding.btnSyncAll.isEnabled = true
         }
