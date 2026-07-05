@@ -76,7 +76,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         startCountdown()
     }
 
-    /** 手动记录喂养 */
+    /** 手动记录喂养（母乳/配方奶均重置倒计时） */
     fun feedNow(isBreast: Boolean, volume: Int?) {
         viewModelScope.launch {
             val prev = feedingDao.getLatest()
@@ -91,15 +91,13 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             feedingDao.insert(record)
             refreshTodayStats()
             _events.emit(CountdownEvent.DismissAlert)
-            // 配方奶 → 重置并自动重启
-            if (!isBreast) {
-                cancelTimer()
-                nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
-                settings.saveNextFeedTime(nextFeedTime)
-                alarmScheduler.scheduleAlarm(nextFeedTime)
-                updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
-                startCountdown()
-            }
+            // 重置倒计时（无论母乳还是配方奶）
+            cancelTimer()
+            nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
+            settings.saveNextFeedTime(nextFeedTime)
+            alarmScheduler.scheduleAlarm(nextFeedTime)
+            updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
+            startCountdown()
         }
     }
 

@@ -314,7 +314,7 @@ class BabyGrowthFragment : Fragment() {
                 ).also { it.setMargins(0, 4, 0, 4) }
                 textSize = 13f
                 setPadding(8, 8, 8, 8)
-                setBackgroundResource(com.babycare.R.drawable.card_background)
+                setBackgroundColor(0x1A000000.toInt())
                 setTextColor(resources.getColor(android.R.color.black, null))
             }
             return VH(tv)
