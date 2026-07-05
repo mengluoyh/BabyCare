@@ -250,11 +250,7 @@ class FeedingRecordsFragment : Fragment() {
 
     private fun exportRecords() {
         lifecycleScope.launch {
-            val records = feedingDao.getAll().let {
-                var list = emptyList<FeedingRecord>()
-                it.collect { list = it }
-                list
-            }
+            val records = feedingDao.getAllSnapshot()
             val file = ExportUtil.exportToJson(
                 requireContext(),
                 records,
@@ -262,6 +258,8 @@ class FeedingRecordsFragment : Fragment() {
             )
             if (file != null) {
                 Toast.makeText(requireContext(), "导出成功：${file.absolutePath}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "导出失败", Toast.LENGTH_SHORT).show()
             }
         }
     }

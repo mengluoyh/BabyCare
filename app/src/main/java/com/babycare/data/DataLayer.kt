@@ -47,6 +47,9 @@ interface FeedingDao {
     @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC")
     fun getAll(): Flow<List<FeedingRecord>>
 
+    @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC")
+    suspend fun getAllSnapshot(): List<FeedingRecord>
+
     @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): FeedingRecord?
 

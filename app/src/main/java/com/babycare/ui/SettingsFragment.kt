@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/SettingsFragment.kt
 package com.babycare.ui
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,11 +9,13 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.babycare.R
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
 import com.babycare.util.IconChanger
+import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -39,16 +42,16 @@ class SettingsFragment : Fragment() {
     }
 
     private fun updateBackupStatus() {
-        // 列出本地备份文件数
-        val localDir = java.io.File("/storage/emulated/0/BabyCare/backups")
-        val count = if (localDir.exists()) localDir.listFiles()?.filter { it.name.startsWith("babycare_backup_") && it.name.endsWith(".json") }?.size ?: 0 else 0
-        binding.tvLocalBackupCount.text = if (count > 0) "本地备份文件: $count 个" else "暂无本地备份"
+        val files = BackupManager.listBackupFiles()
+        binding.tvLocalBackupCount.text = if (files.isNotEmpty()) "本地备份文件: ${files.size} 个" else "暂无本地备份"
         binding.tvSyncStatus.text = ""
+        binding.btnRestoreBackup.isEnabled = files.isNotEmpty()
     }
 
     private fun setupUI() {
         // ─── 备份 ───
         binding.btnLocalBackup.setOnClickListener { doLocalBackup() }
+        binding.btnRestoreBackup.setOnClickListener { showRestorePicker() }
 
         // ─── 主题 ───
         binding.rgThemeMode.setOnCheckedChangeListener { _, checkedId ->
@@ -63,7 +66,6 @@ class SettingsFragment : Fragment() {
                 "dark" -> AppCompatDelegate.MODE_NIGHT_YES
                 else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             })
-            // 立即重建Activity应用新主题
             requireActivity().recreate()
         }
 
@@ -80,14 +82,53 @@ class SettingsFragment : Fragment() {
 
     private fun doLocalBackup() {
         binding.btnLocalBackup.isEnabled = false
-        binding.tvSyncStatus.text = "⏳ 本地备份中..."
-        BackupManager.localBackupOnly(requireContext()) { success, message ->
-            requireActivity().runOnUiThread {
-                binding.btnLocalBackup.isEnabled = true
-                binding.tvSyncStatus.text = if (success) "✅ $message" else "❌ $message"
-                updateBackupStatus()
+        binding.tvSyncStatus.text = "⏳ 备份中..."
+        lifecycleScope.launch {
+            val result = BackupManager.backupAll(requireContext())
+            binding.btnLocalBackup.isEnabled = true
+            result.onSuccess { msg ->
+                binding.tvSyncStatus.text = "✅ $msg"
+            }.onFailure { e ->
+                binding.tvSyncStatus.text = "❌ 备份失败:${e.message}"
             }
+            updateBackupStatus()
         }
+    }
+
+    private fun showRestorePicker() {
+        val files = BackupManager.listBackupFiles()
+        if (files.isEmpty()) {
+            Toast.makeText(requireContext(), "没有可恢复的备份", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val names = files.map { it.name }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择备份文件恢复")
+            .setItems(names) { _, which ->
+                doRestore(files[which])
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun doRestore(file: java.io.File) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("确认恢复")
+            .setMessage("恢复操作会添加备份中的记录到现有数据中，确定继续？")
+            .setPositiveButton("确定") { _, _ ->
+                binding.tvSyncStatus.text = "⏳ 恢复中..."
+                lifecycleScope.launch {
+                    val result = BackupManager.restoreFromFile(file)
+                    result.onSuccess { msg ->
+                        binding.tvSyncStatus.text = "✅ $msg"
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+                    }.onFailure { e ->
+                        binding.tvSyncStatus.text = "❌ 恢复失败:${e.message}"
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     // ═══════════════════ 主题 ═══════════════════
