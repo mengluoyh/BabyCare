@@ -11,13 +11,10 @@ import kotlinx.coroutines.flow.Flow
 @Entity(tableName = "baby_profile")
 data class BabyProfile(
     @PrimaryKey val id: Int = 1,
-    val name: String = "宝宝",
     val birthDate: Long = System.currentTimeMillis(),
     val isLocked: Boolean = false,
     val weight: Float = 0f,        // 体重(kg)，0表示未设置
-    val weightLocked: Boolean = false,
-    val customFormulaTarget: Int = 800,
-    val formulaAgeUnit: String = "month" // "day" | "week" | "month"
+    val weightLocked: Boolean = false
 )
 
 @Entity(tableName = "feeding_records")
@@ -88,6 +85,9 @@ interface FeedingDao {
 interface ExcreteDao {
     @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC")
     fun getAll(): Flow<List<ExcreteRecord>>
+
+    @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC")
+    suspend fun getAllSnapshot(): List<ExcreteRecord>
 
     @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): ExcreteRecord?

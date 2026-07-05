@@ -10,8 +10,8 @@ import java.io.FileNotFoundException
 object ExportUtil {
     fun exportToJson(context: Context, data: Any, filename: String): File? {
         return try {
-            // 存到 /storage/emulated/0/BabyCare/（更易访问）
-            val dir = File("/storage/emulated/0/BabyCare")
+            // 存到公开目录（更易访问）
+            val dir = File(Constants.EXPORT_DIR)
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, filename)
             file.writeText(Gson().toJson(data))

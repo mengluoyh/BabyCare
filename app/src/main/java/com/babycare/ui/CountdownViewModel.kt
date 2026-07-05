@@ -1,0 +1,337 @@
+// BabyCare/app/src/main/java/com/babycare/ui/CountdownViewModel.kt
+package com.babycare.ui
+
+import android.app.Application
+import android.os.CountDownTimer
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.babycare.BabyCareApp
+import com.babycare.data.FeedingRecord
+import com.babycare.data.SettingsManager
+import com.babycare.service.AlarmScheduler
+import com.babycare.util.AgeCalculator
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+
+/**
+ * 倒计时 ViewModel，管理喂奶倒计时逻辑、喂养记录写入和今日统计。
+ * 不持有任何 UI 引用（AlertDialog、AudioPlayer 等由 Fragment 处理）。
+ */
+class CountdownViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app = application as BabyCareApp
+    private val settings = SettingsManager(application)
+    private val feedingDao = app.database.feedingDao()
+    private val babyDao = app.database.babyDao()
+    private val alarmScheduler = AlarmScheduler(application)
+
+    // ─── UI State ──────────────────────────────────
+    private val _uiState = MutableStateFlow(CountdownUiState())
+    val uiState: StateFlow<CountdownUiState> = _uiState.asStateFlow()
+
+    // ─── 一次性事件（Fragment 监听） ────────────────
+    private val _events = MutableSharedFlow<CountdownEvent>()
+    val events: SharedFlow<CountdownEvent> = _events.asSharedFlow()
+
+    // ─── 内部状态 ──────────────────────────────────
+    private var nextFeedTime: Long = 0
+    private var isPaused = false
+    private var remainingOnPause: Long = 0
+    private var intervalMinutes: Int = 180
+    private var birthDate: Long = 0
+    private var countDownJob: kotlinx.coroutines.Job? = null
+
+    init {
+        intervalMinutes = settings.getInterval()
+        updateState { copy(intervalMinutes = intervalMinutes) }
+        restoreState()
+        loadBabyProfile()
+        refreshTodayStats()
+    }
+
+    // ═══════════════════ 公开操作 ═══════════════════
+
+    /** 设置间隔并启动倒计时 */
+    fun setInterval(minutes: Int) {
+        intervalMinutes = minutes.coerceAtLeast(1)
+        settings.saveInterval(intervalMinutes)
+        updateState { copy(intervalMinutes = intervalMinutes) }
+        cancelTimer()
+        nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
+        settings.saveNextFeedTime(nextFeedTime)
+        alarmScheduler.scheduleAlarm(nextFeedTime)
+        isPaused = false
+        settings.savePausedState(false)
+        updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
+        startCountdown()
+    }
+
+    /** 手动记录喂养 */
+    fun feedNow(isBreast: Boolean, volume: Int?) {
+        viewModelScope.launch {
+            val prev = feedingDao.getLatest()
+            val diff = prev?.timestamp?.let { System.currentTimeMillis() - it }
+            val record = FeedingRecord(
+                type = "manual",
+                feedType = if (isBreast) "breast" else "formula",
+                volume = if (!isBreast) volume else null,
+                timestamp = System.currentTimeMillis(),
+                diff = diff
+            )
+            feedingDao.insert(record)
+            refreshTodayStats()
+            _events.emit(CountdownEvent.DismissAlert)
+            // 配方奶 → 重置并自动重启
+            if (!isBreast) {
+                cancelTimer()
+                nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
+                settings.saveNextFeedTime(nextFeedTime)
+                alarmScheduler.scheduleAlarm(nextFeedTime)
+                updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
+                startCountdown()
+            }
+        }
+    }
+
+    fun pause() {
+        if (nextFeedTime <= 0 || isPaused) return
+        remainingOnPause = nextFeedTime - System.currentTimeMillis()
+        isPaused = true
+        settings.savePausedState(true)
+        settings.savePauseRemaining(remainingOnPause)
+        cancelTimer()
+        alarmScheduler.cancelAlarm()
+        updateState {
+            copy(
+                isPaused = true,
+                labelText = "已暂停",
+                countdownText = formatTime(remainingOnPause)
+            )
+        }
+    }
+
+    fun resume() {
+        if (!isPaused) return
+        remainingOnPause = settings.getPauseRemaining()
+        nextFeedTime = System.currentTimeMillis() + remainingOnPause
+        settings.saveNextFeedTime(nextFeedTime)
+        alarmScheduler.scheduleAlarm(nextFeedTime)
+        isPaused = false
+        settings.savePausedState(false)
+        updateState { copy(isPaused = false, labelText = "下次定时喂奶倒计时") }
+        startCountdown()
+    }
+
+    fun clearTimer() {
+        cancelTimer()
+        nextFeedTime = 0
+        settings.saveNextFeedTime(0)
+        alarmScheduler.cancelAlarm()
+        isPaused = false
+        settings.savePausedState(false)
+        updateState {
+            copy(
+                isPauseEnabled = false,
+                isPaused = false,
+                labelText = "已清零，请重新设置间隔",
+                countdownText = "00:00:00",
+                estimatedTimeText = ""
+            )
+        }
+    }
+
+    /** 保存自定义配方奶建议量 */
+    fun saveCustomFormula(ml: Int) {
+        settings.saveCustomFormulaSuggestion(ml)
+        if (birthDate > 0) updateSuggestion()
+    }
+
+    /** 更新配方奶建议量显示 */
+    fun loadBabyProfile() {
+        viewModelScope.launch {
+            val profile = babyDao.getProfileSync()
+            if (profile != null && profile.birthDate > 0) {
+                birthDate = profile.birthDate
+                updateSuggestion()
+            } else {
+                updateState { copy(suggestedFormula = "-- ml") }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        cancelTimer()
+    }
+
+    // ═══════════════════ 内部方法 ═══════════════════
+
+    private fun startCountdown() {
+        cancelTimer()
+        val remaining = nextFeedTime - System.currentTimeMillis()
+        if (remaining <= 0) {
+            onTimerFinished()
+            return
+        }
+        updateEstimatedTime(remaining)
+        updateDisplay(remaining)
+
+        countDownJob = viewModelScope.launch {
+            var ms = remaining
+            while (ms > 0) {
+                delay(200)
+                ms = nextFeedTime - System.currentTimeMillis()
+                if (ms <= 0) break
+                updateDisplay(ms)
+                updateEstimatedTime(ms)
+            }
+            if (ms <= 0) onTimerFinished()
+        }
+    }
+
+    private fun onTimerFinished() {
+        cancelTimer()
+        viewModelScope.launch {
+            // 自动记录
+            val prev = feedingDao.getLatest()
+            val diff = prev?.timestamp?.let { System.currentTimeMillis() - it }
+            feedingDao.insert(FeedingRecord(
+                type = "auto",
+                feedType = "formula",
+                volume = null,
+                timestamp = System.currentTimeMillis(),
+                diff = diff
+            ))
+            refreshTodayStats()
+        }
+        // 触发提醒
+        viewModelScope.launch { _events.emit(CountdownEvent.TriggerAlert) }
+        // 自动续时
+        nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
+        settings.saveNextFeedTime(nextFeedTime)
+        alarmScheduler.scheduleAlarm(nextFeedTime)
+        updateState {
+            copy(
+                isPauseEnabled = true,
+                labelText = "⏰ 自动续时中，下次喂奶倒计时"
+            )
+        }
+        startCountdown()
+    }
+
+    private fun cancelTimer() {
+        countDownJob?.cancel()
+        countDownJob = null
+    }
+
+    private fun updateDisplay(remainingMs: Long) {
+        updateState { copy(countdownText = formatTime(remainingMs)) }
+    }
+
+    private fun updateEstimatedTime(remainingMs: Long) {
+        val text = if (remainingMs <= 0) ""
+        else {
+            val clock = System.currentTimeMillis() + remainingMs
+            "预计 ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(clock))} 可以喂奶"
+        }
+        updateState { copy(estimatedTimeText = text) }
+    }
+
+    private fun formatTime(ms: Long): String {
+        val h = ms / 3_600_000
+        val m = (ms % 3_600_000) / 60_000
+        val s = (ms % 60_000) / 1_000
+        return String.format("%02d:%02d:%02d", h, m, s)
+    }
+
+    private fun restoreState() {
+        val savedNextTime = settings.getNextFeedTime()
+        when {
+            savedNextTime > System.currentTimeMillis() -> {
+                nextFeedTime = savedNextTime
+                isPaused = settings.isPaused()
+                if (isPaused) {
+                    remainingOnPause = settings.getPauseRemaining()
+                    updateState {
+                        copy(
+                            isPaused = true,
+                            isPauseEnabled = true,
+                            labelText = "已暂停",
+                            countdownText = formatTime(remainingOnPause)
+                        )
+                    }
+                } else {
+                    updateState { copy(isPauseEnabled = true) }
+                    startCountdown()
+                }
+            }
+            savedNextTime > 0 -> clearTimer()
+            else -> {
+                updateState { copy(isPauseEnabled = false) }
+            }
+        }
+    }
+
+    private fun loadBabyProfile() {
+        viewModelScope.launch {
+            val profile = babyDao.getProfileSync()
+            if (profile != null && profile.birthDate > 0) {
+                birthDate = profile.birthDate
+                updateSuggestion()
+            } else {
+                updateState { copy(suggestedFormula = "-- ml") }
+            }
+        }
+    }
+
+    private fun updateSuggestion() {
+        if (birthDate <= 0) return
+        val (months, _, _) = AgeCalculator.calculateAge(birthDate)
+        val custom = settings.getCustomFormulaSuggestion()
+        val suggested = if (custom > 0) custom else AgeCalculator.getSuggestedFormula(months)
+        updateState { copy(suggestedFormula = "$suggested ml") }
+    }
+
+    private fun refreshTodayStats() {
+        viewModelScope.launch {
+            val (todayStart, todayEnd) = AgeCalculator.getTodayRange()
+            val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
+            val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
+            updateState { copy(todayBreastCount = breastCount, todayFormulaAmount = formulaTotal) }
+        }
+    }
+
+    private fun updateState(transform: CountdownUiState.() -> CountdownUiState) {
+        _uiState.value = _uiState.value.transform()
+    }
+}
+
+// ─── 数据类型 ─────────────────────────────────────────
+
+data class CountdownUiState(
+    val countdownText: String = "00:00:00",
+    val estimatedTimeText: String = "",
+    val labelText: String = "已清零，请重新设置间隔",
+    val isPaused: Boolean = false,
+    val isPauseEnabled: Boolean = false,
+    val intervalMinutes: Int = 180,
+    val todayBreastCount: Int = 0,
+    val todayFormulaAmount: Int = 0,
+    val suggestedFormula: String = "-- ml",
+    val isAudioBarVisible: Boolean = false
+)
+
+sealed class CountdownEvent {
+    /** 触发喂奶提醒（震动+音频+对话框） */
+    data object TriggerAlert : CountdownEvent()
+    /** 关闭提醒 */
+    data object DismissAlert : CountdownEvent()
+}
