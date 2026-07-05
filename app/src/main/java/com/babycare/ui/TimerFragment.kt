@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,14 +19,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.util.AudioPlayer
-import com.babycare.util.CountdownNotificationHelper
-import com.babycare.util.CountdownNotificationReceiver
+import com.babycare.util.CountdownOverlay
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * 计时页面。UI 层：展示倒计时、处理提醒弹窗/音频。
+ * 计时页面。UI 层：展示倒计时、悬浮窗、处理提醒弹窗/音频/震动。
  * 所有业务逻辑委托给 [CountdownViewModel]。
  */
 class TimerFragment : Fragment() {
@@ -38,6 +39,9 @@ class TimerFragment : Fragment() {
     private var alertDialog: androidx.appcompat.app.AlertDialog? = null
     private val handler = Handler(Looper.getMainLooper())
 
+    // 周期性震动（每1分钟一次，30秒后开始）
+    private var vibrationJob: kotlinx.coroutines.Job? = null
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
         return binding.root
@@ -46,15 +50,10 @@ class TimerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 请求通知权限（Android13+）
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
+        // 检查悬浮窗权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !CountdownOverlay.hasPermission(requireContext())) {
+            Toast.makeText(requireContext(), "请在设置中允许「显示悬浮窗」以显示倒计时悬浮窗", Toast.LENGTH_LONG).show()
         }
-
-        // 注册通知栏操作回调
-        CountdownNotificationReceiver.onPause = { viewModel.pause() }
-        CountdownNotificationReceiver.onResume = { viewModel.resume() }
-        CountdownNotificationReceiver.onClear = { viewModel.clearTimer() }
 
         setupTabs()
         setupUI()
@@ -126,6 +125,8 @@ class TimerFragment : Fragment() {
         }
     }
 
+    // ═══════════════════ 状态观察 ═══════════════════
+
     private fun observeState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -145,18 +146,11 @@ class TimerFragment : Fragment() {
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
                     binding.btnPause.isEnabled = state.isPauseEnabled
 
-                    // 持续倒计时通知
-                    if (state.isPauseEnabled) {
-                        CountdownNotificationHelper.showCountdown(
-                            requireContext(),
-                            state.countdownText,
-                            state.estimatedTimeText,
-                            state.labelText,
-                            state.isPaused,
-                            state.intervalMinutes
-                        )
+                    // 倒计时进行中 → 显示悬浮窗
+                    if (state.isPauseEnabled && !state.isPaused) {
+                        CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
                     } else {
-                        CountdownNotificationHelper.cancel(requireContext())
+                        CountdownOverlay.hide()
                     }
                 }
             }
@@ -176,31 +170,62 @@ class TimerFragment : Fragment() {
         }
     }
 
-    // ═══════════════════ 提醒（UI 专属） ═══════════════
+    // ═══════════════════ 提醒 ═══════════════════
 
     private fun triggerAlert() {
+        // 隐藏悬浮窗
+        CountdownOverlay.hide()
+
+        // === 震动模式 ===
+        // 阶段1：持续震动30秒
         try {
             val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
+            vibrator.vibrate(longArrayOf(0, 30000), -1) // 连续震动30秒
         } catch (_: Exception) {}
 
+        // 阶段2：30秒后开始每1分钟震动一次
+        handler.postDelayed({
+            startPeriodicVibration()
+        }, 30000)
+
+        // 播放音频（最多60秒）
         val audioPath = com.babycare.data.SettingsManager(requireContext()).getCustomAudioPath()
         mediaPlayer = AudioPlayer.playLooping(requireContext(), audioPath, 60_000L, handler) {
             dismissAlert()
         }
         binding.audioControlBar.visibility = View.VISIBLE
 
+        // 弹窗：用户点击「我知道了」才续时
         alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("🍼 喂奶时间到！")
             .setMessage("宝宝该喂奶了")
             .setCancelable(false)
-            .setPositiveButton("我知道了") { _: DialogInterface?, _: Int -> dismissAlert() }
+            .setPositiveButton("我知道了") { _: DialogInterface?, _: Int ->
+                viewModel.confirmTimerFinished()
+                dismissAlert()
+            }
             .create()
             .also { it.show() }
     }
 
+    /** 每1分钟震动一次（短促） */
+    private fun startPeriodicVibration() {
+        vibrationJob?.cancel()
+        vibrationJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                try {
+                    val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                    vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
+                } catch (_: Exception) {}
+                delay(60_000) // 等1分钟
+            }
+        }
+    }
+
     private fun dismissAlert() {
         handler.removeCallbacksAndMessages(null)
+        vibrationJob?.cancel()
+        vibrationJob = null
         alertDialog?.dismiss()
         alertDialog = null
         stopAudio()
@@ -222,14 +247,13 @@ class TimerFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        CountdownNotificationHelper.cancel(requireContext())
+        CountdownOverlay.hide()
         handler.removeCallbacksAndMessages(null)
+        vibrationJob?.cancel()
+        vibrationJob = null
         stopAudio()
         alertDialog?.dismiss()
         alertDialog = null
-        CountdownNotificationReceiver.onPause = null
-        CountdownNotificationReceiver.onResume = null
-        CountdownNotificationReceiver.onClear = null
         _binding = null
         super.onDestroyView()
     }

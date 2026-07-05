@@ -283,10 +283,22 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    /** 倒计时自然结束 → 仅触发提醒，不自动续时，等待用户点击"我知道了"才记录+续时 */
     private fun onTimerFinished() {
         cancelTimer()
+        // 触发提醒（震动+音频+弹窗）
+        viewModelScope.launch { _events.emit(CountdownEvent.TriggerAlert) }
+        updateState {
+            copy(
+                isPauseEnabled = false,
+                labelText = "⏰ 喂奶时间到！请点击「我知道了」续时"
+            )
+        }
+    }
+
+    /** 用户点击「我知道了」→ 自动记录喂养 + 重启倒计时 */
+    fun confirmTimerFinished() {
         viewModelScope.launch {
-            // 自动记录
             val prev = feedingDao.getLatest()
             val diff = prev?.timestamp?.let { System.currentTimeMillis() - it }
             feedingDao.insert(FeedingRecord(
@@ -298,16 +310,14 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             ))
             refreshTodayStats()
         }
-        // 触发提醒
-        viewModelScope.launch { _events.emit(CountdownEvent.TriggerAlert) }
-        // 自动续时
+        // 续时
         nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
         settings.saveNextFeedTime(nextFeedTime)
         alarmScheduler.scheduleAlarm(nextFeedTime)
         updateState {
             copy(
                 isPauseEnabled = true,
-                labelText = "⏰ 自动续时中，下次喂奶倒计时"
+                labelText = "⏰ 已续时，下次喂奶倒计时"
             )
         }
         startCountdown()
