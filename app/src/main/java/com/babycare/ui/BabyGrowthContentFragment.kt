@@ -86,10 +86,10 @@ class BabyGrowthContentFragment : Fragment() {
         val (months, weeks, days) = AgeCalculator.calculateAge(birthDate)
         val totalDays = AgeCalculator.totalDays(birthDate)
         val text = when (unit) {
-            "day" -> "当前宝宝已经 $totalDays 天啦"
-            "week" -> "当前宝宝已经 ${totalDays / 7} 周 ${totalDays % 7} 天啦"
-            "month" -> "当前宝宝已经 $months 月 ${weeks} 周 ${days} 天啦"
-            else -> "当前宝宝已经 $totalDays 天啦"
+            "day" -> "宝宝 $totalDays 天啦"
+            "week" -> "宝宝 ${totalDays / 7} 周 ${totalDays % 7} 天啦"
+            "month" -> "宝宝 $months 月 ${weeks} 周 ${days} 天啦"
+            else -> "宝宝 $totalDays 天啦"
         }
         binding.tvBabyAge.text = text
     }

@@ -153,46 +153,69 @@ object WebDavManager {
         )
     }
 
-    /** 列出 WebDAV 上所有备份文件（按修改时间倒序） */
+    /** 列出 WebDAV 上所有备份文件（按文件名倒序） */
     private fun listBackupFiles(config: WebDavConfig): List<String> {
-        var listUrl = config.url.trimEnd('/') + "/"
-        // 确保以 / 结尾
-        if (!listUrl.endsWith("/")) listUrl += "/"
+        val listUrl = config.url.trimEnd('/') + "/"
 
-        val conn = URL(listUrl).openConnection() as HttpURLConnection
-        conn.requestMethod = "PROPFIND"
-        conn.connectTimeout = TIMEOUT
-        conn.readTimeout = TIMEOUT
-        conn.setRequestProperty("Authorization", basicAuth(config))
-        conn.setRequestProperty("Depth", "1")
-
-        val code = conn.responseCode
-        if (code !in 200..299) {
-            throw Exception("WebDAV 列表失败: HTTP $code")
+        // 首选 PROPFIND（标准 WebDAV），失败则降级为 GET
+        val body: String? = try {
+            val conn = URL(listUrl).openConnection() as HttpURLConnection
+            conn.requestMethod = "PROPFIND"
+            conn.connectTimeout = TIMEOUT
+            conn.readTimeout = TIMEOUT
+            conn.setRequestProperty("Authorization", basicAuth(config))
+            conn.setRequestProperty("Depth", "1")
+            val code = conn.responseCode
+            if (code in 200..299) {
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                null // 降级
+            }
+        } catch (_: Exception) {
+            null
         }
 
-        val xml = conn.inputStream.bufferedReader().use { it.readText() }
+        val files = mutableListOf<String>()
 
-        // 简易 XML 解析提取 href
-        val files = mutableListOf<Pair<String, Long>>()
-        val responseRegex = Regex("<(?:d:)?response>(.*?)</(?:d:)?response>", RegexOption.DOT_MATCHES_ALL)
-        val hrefRegex = Regex("<(?:d:)?href>(.*?)</(?:d:)?href>")
-        val modRegex = Regex("<(?:d:)?getlastmodified>(.*?)</(?:d:)?getlastmodified>", RegexOption.DOT_MATCHES_ALL)
-
-        for (match in responseRegex.findAll(xml)) {
-            val block = match.groupValues[1]
-            val hrefMatch = hrefRegex.find(block)
-            if (hrefMatch != null) {
-                var href = hrefMatch.groupValues[1].trim()
-                // 去掉 URL 前缀
-                if (href.startsWith(listUrl)) href = href.removePrefix(listUrl)
-                href = href.trim('/')
-                if (href.startsWith("babycare_backup_") && href.endsWith(".json")) {
-                    files.add(href to System.currentTimeMillis()) // 简易排序
+        if (body != null) {
+            // 解析 PROPFIND XML
+            val responseRegex = Regex("<(?:d:)?response>(.*?)</(?:d:)?response>", RegexOption.DOT_MATCHES_ALL)
+            val hrefRegex = Regex("<(?:d:)?href>(.*?)</(?:d:)?href>")
+            for (match in responseRegex.findAll(body)) {
+                val hrefMatch = hrefRegex.find(match.groupValues[1])
+                if (hrefMatch != null) {
+                    var href = hrefMatch.groupValues[1].trim()
+                    if (href.startsWith(listUrl)) href = href.removePrefix(listUrl)
+                    href = href.trim('/')
+                    if (href.startsWith("babycare_backup_") && href.endsWith(".json")) {
+                        files.add(href)
+                    }
                 }
+            }
+        } else {
+            // 降级：GET 请求目录，从 HTML/文本中正则提取文件名
+            try {
+                val conn = URL(listUrl).openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = TIMEOUT
+                conn.readTimeout = TIMEOUT
+                conn.setRequestProperty("Authorization", basicAuth(config))
+                val code = conn.responseCode
+                if (code in 200..299) {
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    // 匹配 href 链接或直接出现在文本中的备份文件名
+                    val hrefRegex = Regex("""href=["']([^"']*babycare_backup_\d{8}_\d{6}\.json)["']""", RegexOption.IGNORE_CASE)
+                    for (m in hrefRegex.findAll(text)) files.add(m.groupValues[1].trim())
+                    if (files.isEmpty()) {
+                        val rawRegex = Regex("babycare_backup_\\d{8}_\\d{6}\\.json")
+                        for (m in rawRegex.findAll(text)) files.add(m.value)
+                    }
+                }
+            } catch (e: Exception) {
+                throw Exception("WebDAV 列表失败（PROPFIND 和 GET 均不可用）: ${e.message}")
             }
         }
 
-        return files.sortedByDescending { it.second }.map { it.first }
+        return files.sortedByDescending { it }.toList()
     }
 }
