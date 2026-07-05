@@ -120,6 +120,7 @@ class TimerFragment : Fragment() {
                     binding.tvEstimatedTime.text = state.estimatedTimeText
                     binding.tvCountdownLabel.text = state.labelText
                     binding.tvTodayBreastCount.text = state.todayBreastCount.toString()
+                    binding.tvTodayFormulaCount.text = state.todayFormulaCount.toString()
                     binding.tvTodayFormulaAmount.text = state.todayFormulaAmount.toString()
                     binding.tvSuggestedFormula.text = state.suggestedFormula
                     // 🎯 距离目标差量（迁移至目标卡片）

@@ -172,6 +172,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             val (todayStart, todayEnd) = AgeCalculator.getTodayRange()
             val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
             val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
+            val formulaCount = feedingDao.getFormulaCountBetween(todayStart, todayEnd)
 
             // 计算配方奶差额
             val suggestedInt = settings.getCustomFormulaSuggestion().let {
@@ -191,6 +192,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                 copy(
                     todayBreastCount = breastCount,
                     todayFormulaAmount = formulaTotal,
+                    todayFormulaCount = formulaCount,
                     formulaRemaining = remaining
                 )
             }
@@ -388,6 +390,7 @@ data class CountdownUiState(
     val intervalMinutes: Int = 180,
     val todayBreastCount: Int = 0,
     val todayFormulaAmount: Int = 0,
+    val todayFormulaCount: Int = 0,
     val suggestedFormula: String = "-- ml",
     val formulaRemaining: String = "",
     val lastBreastTime: String = "--:--",
