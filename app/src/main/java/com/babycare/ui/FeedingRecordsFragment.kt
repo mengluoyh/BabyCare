@@ -27,7 +27,7 @@ class FeedingRecordsFragment : Fragment() {
     }
 
     // 子Fragment标签
-    private val TAGS = arrayOf("breast", "formula", "chart")
+    private val TAGS = arrayOf("detail", "breast", "formula", "chart")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentFeedingRecordsBinding.inflate(inflater, container, false)
@@ -44,6 +44,7 @@ class FeedingRecordsFragment : Fragment() {
 
     private fun setupTabs() {
         with(binding.tabLayout) {
+            addTab(newTab().setText("📋 喂养详情"))
             addTab(newTab().setText("🤱 母乳"))
             addTab(newTab().setText("🍼 配方奶"))
             addTab(newTab().setText("📊 趋势图"))
@@ -64,10 +65,11 @@ class FeedingRecordsFragment : Fragment() {
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
             fragment = when (position) {
-                0 -> FeedingBreastFragment()
-                1 -> FeedingFormulaFragment()
-                2 -> FeedingChartFragment()
-                else -> FeedingBreastFragment()
+                0 -> FeedingDetailFragment()
+                1 -> FeedingBreastFragment()
+                2 -> FeedingFormulaFragment()
+                3 -> FeedingChartFragment()
+                else -> FeedingDetailFragment()
             }
             childFragmentManager.beginTransaction()
                 .add(binding.childContainer.id, fragment, tag)

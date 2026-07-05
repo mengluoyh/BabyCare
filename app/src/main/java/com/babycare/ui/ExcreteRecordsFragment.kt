@@ -26,7 +26,7 @@ class ExcreteRecordsFragment : Fragment() {
         if (uri != null) importRecords(uri)
     }
 
-    private val TAGS = arrayOf("bowel", "pee", "chart")
+    private val TAGS = arrayOf("detail", "bowel", "pee", "chart")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentExcreteRecordsBinding.inflate(inflater, container, false)
@@ -42,6 +42,7 @@ class ExcreteRecordsFragment : Fragment() {
 
     private fun setupTabs() {
         with(binding.tabLayout) {
+            addTab(newTab().setText("📋 排泄详情"))
             addTab(newTab().setText("💩 排便"))
             addTab(newTab().setText("💧 排尿"))
             addTab(newTab().setText("📊 趋势图"))
@@ -59,10 +60,11 @@ class ExcreteRecordsFragment : Fragment() {
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
             fragment = when (position) {
-                0 -> ExcreteBowelFragment()
-                1 -> ExcretePeeFragment()
-                2 -> ExcreteChartFragment()
-                else -> ExcreteBowelFragment()
+                0 -> ExcreteDetailFragment()
+                1 -> ExcreteBowelFragment()
+                2 -> ExcretePeeFragment()
+                3 -> ExcreteChartFragment()
+                else -> ExcreteDetailFragment()
             }
             childFragmentManager.beginTransaction()
                 .add(binding.childContainer.id, fragment, tag)
