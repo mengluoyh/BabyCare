@@ -26,6 +26,7 @@ object WebDavManager {
     )
 
     private const val TIMEOUT = 15000
+    private const val INDEX_FILE = "babycare_index.json"
 
     /** 上传备份到 WebDAV */
     suspend fun upload(context: Context): Result<String> = withContext(Dispatchers.IO) {
@@ -36,8 +37,10 @@ object WebDavManager {
             val data = fetchAllData()
             val json = Gson().toJson(data)
             val filename = "babycare_backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json"
-            val targetUrl = config.url.trimEnd('/') + "/" + filename
+            val baseUrl = config.url.trimEnd('/')
+            val targetUrl = baseUrl + "/" + filename
 
+            // 上传备份文件
             val conn = URL(targetUrl).openConnection() as HttpURLConnection
             conn.requestMethod = "PUT"
             conn.doOutput = true
@@ -48,14 +51,59 @@ object WebDavManager {
             conn.outputStream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
 
             val code = conn.responseCode
-            if (code in 200..299) {
-                saveUploadedFilename(context, filename)
-                Result.success("WebDAV 上传成功: $filename")
-            } else {
-                Result.failure(Exception("WebDAV 上传失败: HTTP $code"))
+            if (code !in 200..299) {
+                return@withContext Result.failure(Exception("WebDAV 上传失败: HTTP $code"))
             }
+
+            saveUploadedFilename(context, filename)
+
+            // 更新远程索引文件（方便跨设备恢复）
+            updateRemoteIndex(config, baseUrl, filename)
+
+            Result.success("WebDAV 上传成功: $filename")
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /** 更新远程索引文件：追加新文件名 */
+    private fun updateRemoteIndex(config: WebDavConfig, baseUrl: String, newFilename: String) {
+        val indexUrl = baseUrl + "/" + INDEX_FILE
+        // 读取已有索引
+        val existing = mutableListOf<String>()
+        try {
+            val getConn = URL(indexUrl).openConnection() as HttpURLConnection
+            getConn.requestMethod = "GET"
+            getConn.connectTimeout = TIMEOUT
+            getConn.readTimeout = TIMEOUT
+            getConn.setRequestProperty("Authorization", basicAuth(config))
+            if (getConn.responseCode in 200..299) {
+                val text = getConn.inputStream.bufferedReader().use { it.readText() }
+                val arr = Gson().fromJson(text, Array<String>::class.java)
+                if (arr != null) existing.addAll(arr)
+            }
+        } catch (_: Exception) {}
+
+        // 去重 + 加入新文件名
+        val all = (existing + newFilename).distinct()
+        val updatedJson = Gson().toJson(all)
+
+        // PUT 更新索引
+        try {
+            val putConn = URL(indexUrl).openConnection() as HttpURLConnection
+            putConn.requestMethod = "PUT"
+            putConn.doOutput = true
+            putConn.connectTimeout = TIMEOUT
+            putConn.readTimeout = TIMEOUT
+            putConn.setRequestProperty("Authorization", basicAuth(config))
+            putConn.setRequestProperty("Content-Type", "application/json")
+            putConn.outputStream.use { it.write(updatedJson.toByteArray(Charsets.UTF_8)) }
+            val putCode = putConn.responseCode
+            if (putCode !in 200..299) {
+                android.util.Log.w("WebDavManager", "索引文件更新失败: HTTP $putCode")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("WebDavManager", "索引文件更新异常: ${e.message}")
         }
     }
 
@@ -232,6 +280,22 @@ object WebDavManager {
         } catch (_: Exception) {
             // GET 也失败，继续降级
         }
+
+        // 降级：尝试读取远程索引文件 babycare_index.json
+        try {
+            val indexUrl = listUrl + INDEX_FILE
+            val idxConn = URL(indexUrl).openConnection() as HttpURLConnection
+            idxConn.requestMethod = "GET"
+            idxConn.connectTimeout = TIMEOUT
+            idxConn.readTimeout = TIMEOUT
+            idxConn.setRequestProperty("Authorization", basicAuth(config))
+            if (idxConn.responseCode in 200..299) {
+                val text = idxConn.inputStream.bufferedReader().use { it.readText() }
+                val arr = Gson().fromJson(text, Array<String>::class.java)
+                if (arr != null) files.addAll(arr.filter { it.startsWith("babycare_backup_") && it.endsWith(".json") })
+            }
+            if (files.isNotEmpty()) return files.sortedByDescending { it }
+        } catch (_: Exception) {}
 
         // 最终降级：使用本地记录的上传文件名，逐个尝试 GET 验证
         if (context != null) {
