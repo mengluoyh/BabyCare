@@ -85,10 +85,10 @@ class BabyGrowthContentFragment : Fragment() {
         val (months, weeks, days) = AgeCalculator.calculateAge(birthDate)
         val totalDays = AgeCalculator.totalDays(birthDate)
         val text = when (unit) {
-            "day" -> "当前宝宝已经 $totalDays 天"
-            "week" -> "当前宝宝已经 ${totalDays / 7} 周 ${totalDays % 7} 天"
-            "month" -> "当前宝宝已经 $months 月 ${weeks} 周 ${days} 天"
-            else -> "当前宝宝已经 $totalDays 天"
+            "day" -> "当前宝宝已经 $totalDays 天啦"
+            "week" -> "当前宝宝已经 ${totalDays / 7} 周 ${totalDays % 7} 天啦"
+            "month" -> "当前宝宝已经 $months 月 ${weeks} 周 ${days} 天啦"
+            else -> "当前宝宝已经 $totalDays 天啦"
         }
         binding.tvBabyAge.text = text
     }
@@ -268,10 +268,18 @@ class BabyGrowthContentFragment : Fragment() {
     }
 
     private fun deleteVaccine(record: VaccinationRecord) {
-        lifecycleScope.launch {
-            vaccineDao.delete(record)
-            loadVaccines()
-        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("删除确认")
+            .setMessage("确定删除疫苗「${record.vaccineName}」记录？")
+            .setPositiveButton("删除") { _, _ ->
+                lifecycleScope.launch {
+                    vaccineDao.delete(record)
+                    loadVaccines()
+                }
+                Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun loadVaccines() {

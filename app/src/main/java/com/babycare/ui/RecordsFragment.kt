@@ -13,9 +13,8 @@ class RecordsFragment : Fragment() {
     private var _binding: FragmentRecordsBinding? = null
     private val binding get() = _binding!!
 
-    private val feedingFragment = FeedingRecordsFragment()
-    private val excreteFragment = ExcreteRecordsFragment()
-    private val customRecordFragment = CustomRecordFragment()
+    private val TAGS = arrayOf("feeding", "excrete", "custom")
+    private val fragments = listOf(FeedingRecordsFragment(), ExcreteRecordsFragment(), CustomRecordFragment())
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentRecordsBinding.inflate(inflater, container, false)
@@ -33,31 +32,27 @@ class RecordsFragment : Fragment() {
             addTab(newTab().setText("💩 排泄详情"))
             addTab(newTab().setText("✏️ 补录记录"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-                override fun onTabSelected(tab: TabLayout.Tab?) {
-                    switchFragment(tab?.position ?: 0)
-                }
+                override fun onTabSelected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }
                 override fun onTabUnselected(tab: TabLayout.Tab?) {}
-                override fun onTabReselected(tab: TabLayout.Tab?) {
-                    switchFragment(tab?.position ?: 0)
-                }
+                override fun onTabReselected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }
             })
         }
-        // 默认显示喂养记录
         switchFragment(0)
     }
 
     private fun switchFragment(index: Int) {
-        val fragment = when (index) {
-            0 -> feedingFragment
-            1 -> excreteFragment
-            2 -> customRecordFragment
-            else -> feedingFragment
+        val fragment = fragments[index]
+        val tag = TAGS[index]
+        val ft = childFragmentManager.beginTransaction()
+        for (t in TAGS) {
+            childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
-        // 防止重复添加
-        if (fragment.isAdded) return
-        childFragmentManager.beginTransaction()
-            .replace(com.babycare.R.id.child_fragment_container, fragment)
-            .commit()
+        if (childFragmentManager.findFragmentByTag(tag) == null) {
+            ft.add(com.babycare.R.id.child_fragment_container, fragment, tag)
+        } else {
+            ft.show(fragment)
+        }
+        ft.commit()
     }
 
     override fun onDestroyView() {

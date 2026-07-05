@@ -27,7 +27,7 @@ class VaccinationRecordsFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         return android.widget.ScrollView(requireContext()).apply {
             isFillViewport = true
-            setBackgroundColor(android.graphics.Color.parseColor("#FFF5F5F5"))
+            setBackgroundColor(context.getColor(com.babycare.R.color.background))
 
             val container = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL

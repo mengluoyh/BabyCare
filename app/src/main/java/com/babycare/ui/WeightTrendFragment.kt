@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/WeightTrendFragment.kt
 package com.babycare.ui
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -35,7 +36,7 @@ class WeightTrendFragment : Fragment() {
             override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
         }.apply {
             isFillViewport = true
-            setBackgroundColor(android.graphics.Color.parseColor("#FFF5F5F5"))
+            setBackgroundColor(requireContext().getColor(com.babycare.R.color.background))
 
             addView(android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -63,7 +64,7 @@ class WeightTrendFragment : Fragment() {
                         layoutParams = android.widget.LinearLayout.LayoutParams(
                             0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
                         )
-                        setTextColor(android.graphics.Color.parseColor("#FF333333"))
+                        setTextColor(requireContext().getColor(com.babycare.R.color.on_background))
                         background = null
                     }
                     addView(etWeight)
@@ -151,10 +152,18 @@ class WeightTrendFragment : Fragment() {
     }
 
     private fun deleteWeight(record: WeightRecord) {
-        lifecycleScope.launch {
-            weightDao.delete(record)
-            loadRecords()
-        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("删除确认")
+            .setMessage("确定删除此条体重记录？")
+            .setPositiveButton("删除") { _, _ ->
+                lifecycleScope.launch {
+                    weightDao.delete(record)
+                    loadRecords()
+                }
+                Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun loadRecords() {
