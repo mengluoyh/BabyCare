@@ -73,11 +73,11 @@
                         style="@style/Widget.Material3.Button.OutlinedButton" />
                 </LinearLayout>
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPickBackupFile"
+                    android:id="@+id/btnSyncAll"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="📂 从文件夹选择备份文件恢复"
+                    android:text="☁️📁 本地备份+远程同步"
                     style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <TextView
@@ -174,7 +174,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="💾 保存配置"
+                        android:text="💾 保存"
                         android:layout_marginEnd="4dp"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
                     <com.google.android.material.button.MaterialButton
@@ -182,7 +182,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="☁️ 上传备份"
+                        android:text="☁️ 备份"
                         android:layout_marginStart="2dp"
                         android:layout_marginEnd="2dp" />
                     <com.google.android.material.button.MaterialButton

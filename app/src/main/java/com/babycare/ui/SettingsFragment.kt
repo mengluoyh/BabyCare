@@ -1,7 +1,6 @@
 // BabyCare/app/src/main/java/com/babycare/ui/SettingsFragment.kt
 package com.babycare.ui
 
-import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -19,8 +18,6 @@ import com.babycare.util.BackupManager
 import com.babycare.util.IconChanger
 import com.babycare.util.WebDavManager
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -55,14 +52,13 @@ class SettingsFragment : Fragment() {
         val files = BackupManager.listBackupFiles()
         binding.tvLocalBackupCount.text = if (files.isNotEmpty()) "本地备份文件: ${files.size} 个" else "暂无本地备份"
         binding.tvSyncStatus.text = ""
-        binding.btnRestoreBackup.isEnabled = files.isNotEmpty()
     }
 
     private fun setupUI() {
         // ─── 本地备份 ───
         binding.btnLocalBackup.setOnClickListener { doLocalBackup() }
-        binding.btnRestoreBackup.setOnClickListener { showRestorePicker() }
-        binding.btnPickBackupFile.setOnClickListener { pickBackupFile() }
+        binding.btnRestoreBackup.setOnClickListener { pickBackupFile() }
+        binding.btnSyncAll.setOnClickListener { syncAll() }
 
         // ─── WebDAV 远程备份 ───
         loadWebDavConfig()
@@ -112,45 +108,30 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private fun showRestorePicker() {
-        val files = BackupManager.listBackupFiles()
-        if (files.isEmpty()) {
-            Toast.makeText(requireContext(), "没有可恢复的备份", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val names = files.map { it.name }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("选择备份文件恢复")
-            .setItems(names) { _: DialogInterface?, which: Int ->
-                doRestore(files[which])
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    private fun doRestore(file: java.io.File) {
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("确认恢复")
-            .setMessage("恢复操作会添加备份中的记录到现有数据中，确定继续？")
-            .setPositiveButton("确定") { _: DialogInterface?, _: Int ->
-                binding.tvSyncStatus.text = "⏳ 恢复中..."
-                lifecycleScope.launch {
-                    val result = BackupManager.restoreFromFile(file)
-                    result.onSuccess { msg ->
-                        binding.tvSyncStatus.text = "✅ $msg"
-                        Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
-                    }.onFailure { e ->
-                        binding.tvSyncStatus.text = "❌ 恢复失败:${e.message}"
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    /** 打开系统文件选择器，让用户选取任意 .json 备份文件 */
+    /** 打开系统文件选择器，让用户选取任意 .json 备份文件恢复 */
     private fun pickBackupFile() {
         backupFilePicker.launch(arrayOf("application/json", "*/*"))
+    }
+
+    /** 本地备份 + WebDAV 同步同时执行 */
+    private fun syncAll() {
+        binding.btnSyncAll.isEnabled = false
+        binding.tvSyncStatus.text = "⏳ 本地备份 + 远程同步中..."
+        lifecycleScope.launch {
+            val localResult = BackupManager.backupAll(requireContext())
+            val webdavResult = WebDavManager.upload(requireContext())
+
+            val sb = StringBuilder()
+            localResult.onSuccess { sb.append("✅ 本地$it") }
+                .onFailure { sb.append("❌ 本地备份失败:${it.message}") }
+            sb.append(" | ")
+            webdavResult.onSuccess { sb.append("✅ 远程$it") }
+                .onFailure { sb.append("❌ 远程同步失败:${it.message}") }
+
+            binding.tvSyncStatus.text = sb.toString()
+            updateBackupStatus()
+            binding.btnSyncAll.isEnabled = true
+        }
     }
 
     /** 从用户选择的 URI 读取并恢复备份 */
