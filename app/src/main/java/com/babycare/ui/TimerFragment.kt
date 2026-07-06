@@ -48,7 +48,7 @@ class TimerFragment : Fragment() {
             binding.etCustomFormula.setText(savedCustomFormulaText)
         }
         if (savedIsBreast != null) {
-            if (savedIsBreast) binding.rbBreast.isChecked = true else binding.rbFormula.isChecked = true
+            if (savedIsBreast == true) binding.rbBreast.isChecked = true else if (savedIsBreast == false) binding.rbFormula.isChecked = true
         }
 
         setupTabs()

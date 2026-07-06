@@ -320,32 +320,27 @@ class VaccineListViewAdapter(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).also { it.setMargins(8, 0, 0, 0) }
-            setOnClickListener {
-                val pos = layoutPosition
-                if (pos != RecyclerView.NO_POSITION) {
-                    onDeleteClick(getItem(pos))
-                }
-            }
         }
         itemLayout.addView(deleteBtn)
 
-        return VH(itemLayout, tv)
+        return VH(itemLayout, tv, deleteBtn)
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-            val r = getItem(position)
-            val nextStr = r.nextVaccinationTime?.let {
-                val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-                " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
-            } ?: ""
-            val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
-            val lockIcon = if (r.isLocked) "🔒" else "🔓"
-            holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
+        val r = getItem(position)
+        val nextStr = r.nextVaccinationTime?.let {
+            val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
+            " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
+        } ?: ""
+        val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
+        val lockIcon = if (r.isLocked) "🔒" else "🔓"
+        holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
 
-            holder.itemView.setOnClickListener { onItemClick(r) }
-        }
+        holder.itemView.setOnClickListener { onItemClick(r) }
+        holder.deleteBtn.setOnClickListener { onDeleteClick(r) }
+    }
 
-    inner class VH(itemView: View, val tv: android.widget.TextView) : RecyclerView.ViewHolder(itemView)
+    inner class VH(itemView: View, val tv: android.widget.TextView, val deleteBtn: com.google.android.material.button.MaterialButton) : RecyclerView.ViewHolder(itemView)
 
     companion object {
         private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
