@@ -386,5 +386,5 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ─── 通知设置卡片 ─── -->
+    </LinearLayout>
 </ScrollView>
