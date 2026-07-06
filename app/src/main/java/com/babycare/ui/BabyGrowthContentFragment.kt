@@ -60,7 +60,6 @@ class BabyGrowthContentFragment : Fragment() {
         setupUI()
         setupVaccineUI()
         loadBabyProfile()
-        loadVaccines()
     }
 
     private fun loadBabyProfile() {
