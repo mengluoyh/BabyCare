@@ -70,6 +70,30 @@
                 android:hint="配方奶量 (ml，母乳不填)"
                 android:inputType="number"
                 android:layout_marginTop="8dp" />
+            <!-- 日期选择 -->
+            <EditText
+                android:id="@+id/etCustomDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="日期（点击选择）"
+                android:focusable="false"
+                android:clickable="true"
+                android:inputType="none"
+                android:layout_marginTop="8dp"
+                android:drawableStart="@android:drawable/ic_menu_day"
+                android:drawablePadding="6dp" />
+            <!-- 时间选择 -->
+            <EditText
+                android:id="@+id/etCustomTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="时间（点击选择）"
+                android:focusable="false"
+                android:clickable="true"
+                android:inputType="none"
+                android:layout_marginTop="4dp"
+                android:drawableStart="@android:drawable/ic_menu_myplaces"
+                android:drawablePadding="6dp" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSaveCustomRecord"
                 android:layout_width="match_parent"

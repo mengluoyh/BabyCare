@@ -15,10 +15,13 @@ import androidx.lifecycle.lifecycleScope
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
+import com.babycare.util.SyncEngine
 import com.babycare.util.WebDavManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -77,6 +80,10 @@ class SettingsFragment : Fragment() {
         binding.btnWebDavSave.setOnClickListener { saveWebDavConfig() }
         binding.btnWebDavUpload.setOnClickListener { uploadToWebDav() }
         binding.btnWebDavDownload.setOnClickListener { downloadFromWebDav() }
+
+        // ─── 增量同步 ───
+        binding.btnSyncNow.setOnClickListener { doIncrementalSync() }
+        updateLastSyncDisplay()
 
         // ─── 主题 ───
         binding.rgThemeMode.setOnCheckedChangeListener { _, checkedId ->
@@ -237,6 +244,35 @@ class SettingsFragment : Fragment() {
             }.onFailure { e ->
                 binding.tvWebDavStatus.text = "❌ ${e.message}"
             }
+        }
+    }
+
+    // ═══════════════════ 增量同步 ═══════════════════
+
+    private fun doIncrementalSync() {
+        binding.btnSyncNow.isEnabled = false
+        binding.tvSyncStatus.text = "⏳ 增量同步中..."
+        lifecycleScope.launch {
+            val result = SyncEngine.sync(requireContext())
+            binding.btnSyncNow.isEnabled = true
+            result.onSuccess { summary ->
+                val msg = "✅ 同步完成 ↑推送${summary.pushed} ↓拉取${summary.pulled}"
+                binding.tvSyncStatus.text = msg
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+            }.onFailure { e ->
+                binding.tvSyncStatus.text = "❌ 同步失败:${e.message}"
+            }
+            updateLastSyncDisplay()
+        }
+    }
+
+    private fun updateLastSyncDisplay() {
+        val lastSync = SyncEngine.getLastSyncTime(requireContext())
+        binding.tvWebDavStatus.text = if (lastSync > 0) {
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            "上次同步: ${sdf.format(Date(lastSync))}"
+        } else {
+            "尚未同步"
         }
     }
 

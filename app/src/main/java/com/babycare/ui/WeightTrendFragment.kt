@@ -158,7 +158,7 @@ class WeightTrendFragment : Fragment() {
             .setMessage("确定删除此条体重记录？")
             .setPositiveButton("删除") { _, _ ->
                 lifecycleScope.launch {
-                    weightDao.delete(record)
+                    weightDao.softDelete(record.id, System.currentTimeMillis())
                     loadRecords()
                 }
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()

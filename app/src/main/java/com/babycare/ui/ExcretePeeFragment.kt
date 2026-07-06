@@ -78,7 +78,7 @@ class ExcretePeeFragment : Fragment() {
             .setTitle("删除确认")
             .setMessage("确定删除此条排尿记录？")
             .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
-                lifecycleScope.launch { excreteDao.delete(record) }
+                lifecycleScope.launch { excreteDao.softDelete(record.id, System.currentTimeMillis()) }
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("取消", null)

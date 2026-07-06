@@ -14,7 +14,9 @@ data class BabyProfile(
     val birthDate: Long = System.currentTimeMillis(),
     val isLocked: Boolean = false,
     val weight: Float = 0f,        // 体重(kg)，0表示未设置
-    val weightLocked: Boolean = false
+    val weightLocked: Boolean = false,
+    val lastModified: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
 
 @Entity(tableName = "feeding_records")
@@ -24,7 +26,9 @@ data class FeedingRecord(
     val type: String,         // "auto" or "manual"
     val feedType: String,     // "breast" or "formula"
     val volume: Int? = null,  // ml for formula
-    val diff: Long? = null    // ms since last feeding
+    val diff: Long? = null,   // ms since last feeding
+    val lastModified: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
 
 @Entity(tableName = "excrete_records")
@@ -34,47 +38,49 @@ data class ExcreteRecord(
     val type: String,          // "bowel" or "pee"
     val state: String? = null, // "normal" | "loose" | "hard"
     val note: String? = null,
-    val diff: Long? = null
+    val diff: Long? = null,
+    val lastModified: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
 
 // ─── DAO ────────────────────────────────────────────────
 
 @Dao
 interface FeedingDao {
-    @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC")
+    @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 ORDER BY timestamp DESC")
     fun getAll(): Flow<List<FeedingRecord>>
 
-    @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC")
+    @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 ORDER BY timestamp DESC")
     suspend fun getAllSnapshot(): List<FeedingRecord>
 
-    @Query("SELECT * FROM feeding_records ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): FeedingRecord?
 
-    @Query("SELECT * FROM feeding_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 AND timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
     suspend fun getFeedingsBetween(start: Long, end: Long): List<FeedingRecord>
 
-    @Query("SELECT * FROM feeding_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 AND timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
     fun getFeedingsBetweenFlow(start: Long, end: Long): Flow<List<FeedingRecord>>
 
-    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getBreastCountBetween(start: Long, end: Long): Int
 
-    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaCountBetween(start: Long, end: Long): Int
 
-    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
 
-    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyFormulaLast7Days(start: Long, end: Long): List<Int>
 
-    @Query("SELECT timestamp FROM feeding_records WHERE feedType = 'breast' ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT timestamp FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestBreastTimestamp(): Long?
 
-    @Query("SELECT timestamp FROM feeding_records WHERE feedType = 'formula' ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT timestamp FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestFormulaTimestamp(): Long?
 
-    @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyBreastCountLast7Days(start: Long, end: Long): List<Int>
 
     @Insert
@@ -83,37 +89,50 @@ interface FeedingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<FeedingRecord>)
 
+    @Upsert
+    suspend fun upsert(record: FeedingRecord)
+
     @Delete
     suspend fun delete(record: FeedingRecord)
 
     @Query("DELETE FROM feeding_records")
     suspend fun deleteAll()
+
+    // ─── 同步相关 ───
+    @Query("SELECT * FROM feeding_records WHERE id = :id")
+    suspend fun getById(id: Long): FeedingRecord?
+
+    @Query("SELECT * FROM feeding_records WHERE lastModified > :since")
+    suspend fun getModifiedSince(since: Long): List<FeedingRecord>
+
+    @Query("UPDATE feeding_records SET isDeleted = 1, lastModified = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long)
 }
 
 @Dao
 interface ExcreteDao {
-    @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC")
+    @Query("SELECT * FROM excrete_records WHERE isDeleted = 0 ORDER BY timestamp DESC")
     fun getAll(): Flow<List<ExcreteRecord>>
 
-    @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC")
+    @Query("SELECT * FROM excrete_records WHERE isDeleted = 0 ORDER BY timestamp DESC")
     suspend fun getAllSnapshot(): List<ExcreteRecord>
 
-    @Query("SELECT * FROM excrete_records ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT * FROM excrete_records WHERE isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): ExcreteRecord?
 
-    @Query("SELECT * FROM excrete_records WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
+    @Query("SELECT * FROM excrete_records WHERE isDeleted = 0 AND timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
     suspend fun getExcretesBetween(start: Long, end: Long): List<ExcreteRecord>
 
-    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'bowel' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE isDeleted = 0 AND type = 'bowel' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getBowelCountBetween(start: Long, end: Long): Int
 
-    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'pee' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE isDeleted = 0 AND type = 'pee' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getPeeCountBetween(start: Long, end: Long): Int
 
-    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'bowel' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE isDeleted = 0 AND type = 'bowel' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
     suspend fun getDailyBowelCountsBetween(start: Long, end: Long): List<Int>
 
-    @Query("SELECT COUNT(*) FROM excrete_records WHERE type = 'pee' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
+    @Query("SELECT COUNT(*) FROM excrete_records WHERE isDeleted = 0 AND type = 'pee' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp ASC")
     suspend fun getDailyPeeCountsBetween(start: Long, end: Long): List<Int>
 
     @Insert
@@ -122,11 +141,24 @@ interface ExcreteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ExcreteRecord>)
 
+    @Upsert
+    suspend fun upsert(record: ExcreteRecord)
+
     @Delete
     suspend fun delete(record: ExcreteRecord)
 
     @Query("DELETE FROM excrete_records")
     suspend fun deleteAll()
+
+    // ─── 同步相关 ───
+    @Query("SELECT * FROM excrete_records WHERE id = :id")
+    suspend fun getById(id: Long): ExcreteRecord?
+
+    @Query("SELECT * FROM excrete_records WHERE lastModified > :since")
+    suspend fun getModifiedSince(since: Long): List<ExcreteRecord>
+
+    @Query("UPDATE excrete_records SET isDeleted = 1, lastModified = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long)
 }
 
 @Entity(tableName = "vaccination_records")
@@ -138,14 +170,18 @@ data class VaccinationRecord(
     val nextVaccineName: String? = null,
     val isLocked: Boolean = false,
     val note: String? = null,
-    val fontColor: String? = null   // 字体颜色 hex e.g. "#FF6B35"
+    val fontColor: String? = null,   // 字体颜色 hex e.g. "#FF6B35"
+    val lastModified: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
 
 @Entity(tableName = "weight_records")
 data class WeightRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val weight: Float,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val lastModified: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
 
 @Dao
@@ -156,13 +192,13 @@ interface VaccineDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<VaccinationRecord>)
 
-    @Query("SELECT * FROM vaccination_records ORDER BY vaccinationTime DESC")
+    @Query("SELECT * FROM vaccination_records WHERE isDeleted = 0 ORDER BY vaccinationTime DESC")
     suspend fun getAllSnapshot(): List<VaccinationRecord>
 
     @Query("SELECT * FROM vaccination_records WHERE id = :id")
     suspend fun getById(id: Int): VaccinationRecord?
 
-    @Query("SELECT * FROM vaccination_records WHERE isLocked = 1 ORDER BY vaccinationTime DESC LIMIT 1")
+    @Query("SELECT * FROM vaccination_records WHERE isLocked = 1 AND isDeleted = 0 ORDER BY vaccinationTime DESC LIMIT 1")
     suspend fun getFirstLocked(): VaccinationRecord?
 
     @Delete
@@ -170,6 +206,13 @@ interface VaccineDao {
 
     @Query("DELETE FROM vaccination_records")
     suspend fun deleteAll()
+
+    // ─── 同步相关 ───
+    @Query("SELECT * FROM vaccination_records WHERE lastModified > :since")
+    suspend fun getModifiedSince(since: Long): List<VaccinationRecord>
+
+    @Query("UPDATE vaccination_records SET isDeleted = 1, lastModified = :now WHERE id = :id")
+    suspend fun softDelete(id: Int, now: Long)
 }
 
 @Dao
@@ -177,17 +220,30 @@ interface WeightDao {
     @Insert
     suspend fun insert(record: WeightRecord)
 
-    @Query("SELECT * FROM weight_records ORDER BY timestamp ASC")
+    @Upsert
+    suspend fun upsert(record: WeightRecord)
+
+    @Query("SELECT * FROM weight_records WHERE isDeleted = 0 ORDER BY timestamp ASC")
     suspend fun getAll(): List<WeightRecord>
 
-    @Query("SELECT * FROM weight_records ORDER BY timestamp DESC")
+    @Query("SELECT * FROM weight_records WHERE isDeleted = 0 ORDER BY timestamp DESC")
     suspend fun getAllSnapshot(): List<WeightRecord>
 
-    @Query("SELECT * FROM weight_records ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT * FROM weight_records WHERE isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): WeightRecord?
+
+    @Query("SELECT * FROM weight_records WHERE id = :id")
+    suspend fun getById(id: Long): WeightRecord?
 
     @Delete
     suspend fun delete(record: WeightRecord)
+
+    // ─── 同步相关 ───
+    @Query("SELECT * FROM weight_records WHERE lastModified > :since")
+    suspend fun getModifiedSince(since: Long): List<WeightRecord>
+
+    @Query("UPDATE weight_records SET isDeleted = 1, lastModified = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long)
 }
 
 @Dao
@@ -200,13 +256,17 @@ interface BabyDao {
 
     @Upsert
     suspend fun upsertProfile(profile: BabyProfile)
+
+    // ─── 同步相关 ───
+    @Query("SELECT * FROM baby_profile WHERE lastModified > :since")
+    suspend fun getModifiedSince(since: Long): List<BabyProfile>
 }
 
 // ─── Database ───────────────────────────────────────────
 
 @Database(
     entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class, WeightRecord::class],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -303,13 +363,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v8→v9：所有表新增 lastModified/isDeleted 列（WebDAV 同步支持） */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE baby_profile ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE baby_profile ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE feeding_records ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE feeding_records ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE excrete_records ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE excrete_records ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE vaccination_records ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE vaccination_records ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE weight_records ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE weight_records ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                android.util.Log.w("AppDatabase", "Migration 8->9: added lastModified/isDeleted to all tables")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

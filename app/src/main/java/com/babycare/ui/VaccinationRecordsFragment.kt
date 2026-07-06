@@ -498,7 +498,7 @@ class VaccinationRecordsFragment : Fragment() {
             .setMessage("确定删除「${record.vaccineName}」吗？")
             .setPositiveButton("删除") { _, _ ->
                 lifecycleScope.launch {
-                    dao.delete(record)
+                    dao.softDelete(record.id, System.currentTimeMillis())
                     loadVaccines()
                     Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
                 }
