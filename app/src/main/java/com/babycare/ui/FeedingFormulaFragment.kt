@@ -62,7 +62,7 @@ class FeedingFormulaFragment : Fragment() {
         _binding = null
     }
 
-    inner class FormulaAdapter(
+    class FormulaAdapter(
         private val onDelete: (FeedingRecord) -> Unit
     ) : ListAdapter<FeedingRecord, FormulaAdapter.VH>(DiffCallback()) {
 

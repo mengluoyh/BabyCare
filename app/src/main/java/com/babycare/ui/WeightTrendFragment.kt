@@ -211,7 +211,7 @@ class WeightTrendFragment : Fragment() {
     }
 
     /** 体重记录列表适配器 */
-    inner class RecordListAdapter(
+    class RecordListAdapter(
         private val onDelete: (WeightRecord) -> Unit
     ) : ListAdapter<WeightRecord, RecordListAdapter.VH>(DiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {

@@ -96,7 +96,7 @@ class ExcreteBowelFragment : Fragment() {
         _binding = null
     }
 
-    inner class BowelAdapter(
+    class BowelAdapter(
         private val onDelete: (ExcreteRecord) -> Unit
     ) : ListAdapter<ExcreteRecord, BowelAdapter.VH>(DiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {

@@ -62,7 +62,7 @@ class FeedingBreastFragment : Fragment() {
         _binding = null
     }
 
-    inner class BreastAdapter(
+    class BreastAdapter(
         private val onDelete: (FeedingRecord) -> Unit
     ) : ListAdapter<FeedingRecord, BreastAdapter.VH>(DiffCallback()) {
 

@@ -90,7 +90,7 @@ class ExcretePeeFragment : Fragment() {
         _binding = null
     }
 
-    inner class PeeAdapter(
+    class PeeAdapter(
         private val onDelete: (ExcreteRecord) -> Unit
     ) : ListAdapter<ExcreteRecord, PeeAdapter.VH>(DiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
