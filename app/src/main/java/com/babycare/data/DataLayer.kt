@@ -137,7 +137,8 @@ data class VaccinationRecord(
     val nextVaccinationTime: Long? = null,
     val nextVaccineName: String? = null,
     val isLocked: Boolean = false,
-    val note: String? = null
+    val note: String? = null,
+    val fontColor: String? = null   // 字体颜色 hex e.g. "#FF6B35"
 )
 
 @Entity(tableName = "weight_records")
@@ -205,7 +206,7 @@ interface BabyDao {
 
 @Database(
     entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class, WeightRecord::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -294,13 +295,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v7→v8：vaccination_records 新增 fontColor 列 */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE vaccination_records ADD COLUMN fontColor TEXT DEFAULT NULL")
+                android.util.Log.w("AppDatabase", "Migration 7->8: added fontColor column")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

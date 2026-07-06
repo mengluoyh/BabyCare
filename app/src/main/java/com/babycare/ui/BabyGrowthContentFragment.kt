@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
@@ -291,20 +292,44 @@ class BabyGrowthContentFragment : Fragment() {
             return
         }
 
-        lifecycleScope.launch {
-            val record = VaccinationRecord(
-                vaccineName = name,
-                vaccinationTime = selectedVaccinationTime,
-                nextVaccinationTime = selectedNextVaccinationTime,
-                nextVaccineName = binding.etNextVaccineName.text.toString().trim().takeIf { it.isNotEmpty() },
-                isLocked = true, // 保存后自动锁定
-                note = binding.etVaccineNote.text.toString().trim().takeIf { it.isNotEmpty() }
-            )
-            vaccineDao.upsert(record)
-            Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存（已锁定）", Toast.LENGTH_SHORT).show()
-            lockVaccine()
-            // 不清理输入框 — 信息保留
+        // 显示字体颜色选择弹窗
+        showFontColorPicker { colorHex ->
+            lifecycleScope.launch {
+                val record = VaccinationRecord(
+                    vaccineName = name,
+                    vaccinationTime = selectedVaccinationTime,
+                    nextVaccinationTime = selectedNextVaccinationTime,
+                    nextVaccineName = binding.etNextVaccineName.text.toString().trim().takeIf { it.isNotEmpty() },
+                    isLocked = true, // 保存后自动锁定
+                    note = binding.etVaccineNote.text.toString().trim().takeIf { it.isNotEmpty() },
+                    fontColor = colorHex
+                )
+                vaccineDao.upsert(record)
+                Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存（已锁定）", Toast.LENGTH_SHORT).show()
+                lockVaccine()
+                // 不清理输入框 — 信息保留
+            }
         }
+    }
+
+    private val PRESET_COLORS = listOf(
+        "#FF6B35" to "🟠 橙色",
+        "#1976D2" to "🔵 蓝色",
+        "#4CAF50" to "🟢 绿色",
+        "#F44336" to "🔴 红色",
+        "#7B61FF" to "🟣 紫色",
+        "#201A17" to "⚫ 黑色"
+    )
+
+    private fun showFontColorPicker(onSelected: (String) -> Unit) {
+        val items = PRESET_COLORS.map { it.second + "  ●" }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle("🎨 选择字体颜色")
+            .setItems(items) { _, which ->
+                onSelected(PRESET_COLORS[which].first)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     override fun onPause() {

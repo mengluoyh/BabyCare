@@ -10,9 +10,9 @@ import com.babycare.databinding.FragmentBabyGrowthBinding
 import com.google.android.material.tabs.TabLayout
 
 /**
- * 成长/护理页面 — 顶部两个Tab：宝宝成长 / 宝宝护理
- * - 宝宝成长 → BabyGrowthContentFragment（出生信息+体重+疫苗接种卡片）
- * - 宝宝护理 → BabyCareFragment（体重趋势图+疫苗接种信息记录）
+ * 成长/护理页面 — 顶部两个Tab：宝宝成长 / 疫苗接种记录
+ * - 宝宝成长 → BabyGrowthContentFragment（出生信息+体重）
+ * - 疫苗接种记录 → BabyCareFragment（疫苗接种信息记录）
  */
 class BabyGrowthFragment : Fragment() {
     private var _binding: FragmentBabyGrowthBinding? = null
@@ -34,7 +34,7 @@ class BabyGrowthFragment : Fragment() {
     private fun setupTabs() {
         with(binding.tabLayout) {
             addTab(newTab().setText("👶 宝宝成长"))
-            addTab(newTab().setText("🩺 宝宝护理"))
+            addTab(newTab().setText("💉 疫苗接种记录"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) { switchFragment(tab?.position ?: 0) }
                 override fun onTabUnselected(tab: TabLayout.Tab?) {}
