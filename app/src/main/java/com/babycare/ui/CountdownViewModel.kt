@@ -43,8 +43,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private val _uiState = MutableStateFlow(CountdownUiState())
     val uiState: StateFlow<CountdownUiState> = _uiState.asStateFlow()
 
-    // ─── 一次性事件（Fragment 监听） ────────────────
-    private val _events = MutableSharedFlow<CountdownEvent>()
+    // ─── 一次性事件（Fragment 监听，replay=1 确保恢复时能收到上次事件） ───
+    private val _events = MutableSharedFlow<CountdownEvent>(replay = 1)
     val events: SharedFlow<CountdownEvent> = _events.asSharedFlow()
 
     // ─── 内部状态 ──────────────────────────────────
@@ -95,6 +95,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             )
             feedingDao.insert(record)
             refreshTodayStats()
+            settings.saveTimerFinishedHandled(false)
             // 停止音频播报并关闭弹窗
             stopAudio()
             _events.emit(CountdownEvent.DismissAlert)
@@ -287,6 +288,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** 倒计时自然结束 → 自动记录配方奶 + 弹窗提醒 + 循环播报音频 */
     private fun onTimerFinished() {
+        if (settings.getTimerFinishedHandled()) return // 防止重复处理
+        settings.saveTimerFinishedHandled(true)
         cancelTimer()
         // 自动记录配方奶
         viewModelScope.launch {
@@ -351,6 +354,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** 用户点击"来了来了"确认 → 停止播报 + 关闭弹窗 + 续时重启倒计时 */
     fun dismissAlert() {
+        settings.saveTimerFinishedHandled(false)
         stopAudio()
         viewModelScope.launch { _events.emit(CountdownEvent.DismissAlert) }
         // 续时并重启倒计时
@@ -405,6 +409,10 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     updateState { copy(isPauseEnabled = true) }
                     startCountdown()
                 }
+            }
+            savedNextTime > 0 && !settings.getTimerFinishedHandled() -> {
+                // 倒计时已在其他界面结束，恢复时触发提醒
+                onTimerFinished()
             }
             savedNextTime > 0 -> clearTimer()
             else -> {

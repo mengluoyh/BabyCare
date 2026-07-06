@@ -30,7 +30,6 @@ class VaccinationRecordsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: VaccineListViewAdapter
     private lateinit var emptyText: android.widget.TextView
-    private lateinit var btnAdd: MaterialButton
     private val dao get() = (requireActivity().application as BabyCareApp).database.vaccineDao()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -41,26 +40,17 @@ class VaccinationRecordsFragment : Fragment() {
             val container = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
 
-                // 标题行：标题 + 添加按钮
-                val header = android.widget.LinearLayout(context).apply {
-                    orientation = android.widget.LinearLayout.HORIZONTAL
-                    setPadding(16, 16, 16, 8)
-
+                // 标题
                     val title = android.widget.TextView(context).apply {
                         text = "💉 疫苗接种信息记录"
                         textSize = 20f
                         setTypeface(null, android.graphics.Typeface.BOLD)
-                        layoutParams = android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        layoutParams = android.widget.LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
                     }
                     addView(title)
-
-                    btnAdd = MaterialButton(context).apply {
-                        text = "➕ 添加"
-                        setOnClickListener { showVaccineDialog(null) }
-                    }
-                    addView(btnAdd)
-                }
-                addView(header)
 
                 // 空状态
                 val empty = android.widget.TextView(context).apply {
@@ -106,7 +96,7 @@ class VaccinationRecordsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = VaccineListViewAdapter(
             onItemClick = { record -> showVaccineDialog(record) },
-            onItemLongClick = { record -> confirmDelete(record) }
+            onDeleteClick = { record -> confirmDelete(record) }
         )
         recyclerView.adapter = adapter
         loadVaccines()
@@ -296,44 +286,66 @@ class VaccinationRecordsFragment : Fragment() {
     }
 }
 
-/** 疫苗记录列表适配器（支持点击和长按） */
+/** 疫苗记录列表适配器（支持点击编辑 + 删除按钮） */
 class VaccineListViewAdapter(
     private val onItemClick: (VaccinationRecord) -> Unit,
-    private val onItemLongClick: (VaccinationRecord) -> Unit
+    private val onDeleteClick: (VaccinationRecord) -> Unit
 ) : ListAdapter<VaccinationRecord, VaccineListViewAdapter.VH>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val tv = android.widget.TextView(parent.context).apply {
+        val itemLayout = android.widget.LinearLayout(parent.context).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
             layoutParams = ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
-            ).also { it.setMargins(16, 4, 16, 4) }
-            textSize = 14f
+            ).also { it.setMargins(12, 4, 12, 4) }
             setPadding(12, 12, 12, 12)
             setBackgroundResource(android.R.drawable.list_selector_background)
-            setTextColor(context.getColor(com.babycare.R.color.on_background))
         }
-        return VH(tv)
+
+        val tv = android.widget.TextView(parent.context).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+            textSize = 14f
+            setTextColor(parent.context.getColor(com.babycare.R.color.on_background))
+        }
+        itemLayout.addView(tv)
+
+        val deleteBtn = com.google.android.material.button.MaterialButton(parent.context).apply {
+            text = "✕"
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).also { it.setMargins(8, 0, 0, 0) }
+            setOnClickListener {
+                val pos = layoutPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    onDeleteClick(getItem(pos))
+                }
+            }
+        }
+        itemLayout.addView(deleteBtn)
+
+        return VH(itemLayout, tv)
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val r = getItem(position)
-        val nextStr = r.nextVaccinationTime?.let {
-            val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-            " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
-        } ?: ""
-        val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
-        val lockIcon = if (r.isLocked) "🔒" else "🔓"
-        holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
+            val r = getItem(position)
+            val nextStr = r.nextVaccinationTime?.let {
+                val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
+                " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
+            } ?: ""
+            val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
+            val lockIcon = if (r.isLocked) "🔒" else "🔓"
+            holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
 
-        holder.itemView.setOnClickListener { onItemClick(r) }
-        holder.itemView.setOnLongClickListener {
-            onItemLongClick(r)
-            true
+            holder.itemView.setOnClickListener { onItemClick(r) }
         }
-    }
 
-    inner class VH(val tv: android.widget.TextView) : RecyclerView.ViewHolder(tv)
+    inner class VH(itemView: View, val tv: android.widget.TextView) : RecyclerView.ViewHolder(itemView)
 
     companion object {
         private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())

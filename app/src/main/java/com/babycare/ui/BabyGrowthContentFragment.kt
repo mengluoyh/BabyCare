@@ -57,6 +57,16 @@ class BabyGrowthContentFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // 恢复之前保存的疫苗接种输入框内容
+        if (!savedVaccineName.isNullOrEmpty()) binding.etVaccineName.setText(savedVaccineName)
+        if (!savedNextVaccineName.isNullOrEmpty()) binding.etNextVaccineName.setText(savedNextVaccineName)
+        if (!savedVaccinationTimeText.isNullOrEmpty()) binding.etVaccinationTime.setText(savedVaccinationTimeText)
+        if (!savedNextVaccinationText.isNullOrEmpty()) binding.etNextVaccination.setText(savedNextVaccinationText)
+        if (!savedVaccineNote.isNullOrEmpty()) binding.etVaccineNote.setText(savedVaccineNote)
+        if (savedSelectedTime > 0L) selectedVaccinationTime = savedSelectedTime
+        if (savedSelectedNextTime != null) selectedNextVaccinationTime = savedSelectedNextTime
+        vaccineLocked = savedVaccineLocked
+
         setupUI()
         setupVaccineUI()
         loadBabyProfile()
@@ -289,9 +299,33 @@ class BabyGrowthContentFragment : Fragment() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        // 保存疫苗接种输入框内容（切换界面时不丢失）
+        savedVaccineName = binding.etVaccineName.text?.toString()
+        savedNextVaccineName = binding.etNextVaccineName.text?.toString()
+        savedVaccinationTimeText = binding.etVaccinationTime.text?.toString()
+        savedNextVaccinationText = binding.etNextVaccination.text?.toString()
+        savedVaccineNote = binding.etVaccineNote.text?.toString()
+        savedSelectedTime = selectedVaccinationTime
+        savedSelectedNextTime = selectedNextVaccinationTime
+        savedVaccineLocked = vaccineLocked
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private var savedVaccineName: String? = null
+        private var savedNextVaccineName: String? = null
+        private var savedVaccinationTimeText: String? = null
+        private var savedNextVaccinationText: String? = null
+        private var savedVaccineNote: String? = null
+        private var savedSelectedTime: Long = 0L
+        private var savedSelectedNextTime: Long? = null
+        private var savedVaccineLocked: Boolean = false
     }
 
     // ─── 疫苗列表适配器（ListAdapter + DiffUtil） ───────────

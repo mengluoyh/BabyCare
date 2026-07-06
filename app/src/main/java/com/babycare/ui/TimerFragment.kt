@@ -37,6 +37,20 @@ class TimerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // 恢复之前保存的输入框内容（切换界面时内容不丢失）
+        if (!savedIntervalText.isNullOrEmpty()) {
+            binding.etInterval.setText(savedIntervalText)
+        }
+        if (!savedVolumeText.isNullOrEmpty()) {
+            binding.etVolume.setText(savedVolumeText)
+        }
+        if (!savedCustomFormulaText.isNullOrEmpty()) {
+            binding.etCustomFormula.setText(savedCustomFormulaText)
+        }
+        if (savedIsBreast != null) {
+            if (savedIsBreast) binding.rbBreast.isChecked = true else binding.rbFormula.isChecked = true
+        }
+
         setupTabs()
         setupUI()
         observeState()
@@ -166,10 +180,26 @@ class TimerFragment : Fragment() {
         alertDialog = null
     }
 
+    override fun onPause() {
+        super.onPause()
+        // 切换界面时保存输入框内容
+        savedIntervalText = binding.etInterval.text?.toString()
+        savedVolumeText = binding.etVolume.text?.toString()
+        savedCustomFormulaText = binding.etCustomFormula.text?.toString()
+        savedIsBreast = binding.rbBreast.isChecked
+    }
+
     override fun onDestroyView() {
         alertDialog?.dismiss()
         alertDialog = null
         _binding = null
         super.onDestroyView()
+    }
+
+    companion object {
+        private var savedIntervalText: String? = null
+        private var savedVolumeText: String? = null
+        private var savedCustomFormulaText: String? = null
+        private var savedIsBreast: Boolean? = null
     }
 }

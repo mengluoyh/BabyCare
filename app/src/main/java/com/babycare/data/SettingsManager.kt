@@ -49,4 +49,8 @@ class SettingsManager(context: Context) {
     fun getAudioFilePath(): String = prefs.getString("audio_file_path", "") ?: ""
     fun saveAudioFilePath(path: String) = prefs.edit().putString("audio_file_path", path).apply()
 
+    // ─── 倒计时完成标记（防止重复处理） ───
+    fun getTimerFinishedHandled(): Boolean = prefs.getBoolean("timer_finished_handled", false)
+    fun saveTimerFinishedHandled(handled: Boolean) = prefs.edit().putBoolean("timer_finished_handled", handled).apply()
+
 }
