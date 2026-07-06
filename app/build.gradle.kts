@@ -37,31 +37,6 @@ android {
     }
 }
 
-// ─── 自定义APP图标：把 custom_icon/ 下的图片自动设置为启动图标 ───
-android.applicationVariants.all { variant ->
-    val copyCustomIcon by tasks.registering(Copy::class) {
-        description = "如果 custom_icon/ 下有图片，则用它替换默认启动图标"
-        val customIconDir = rootProject.projectDir.resolve("custom_icon")
-        val pngFiles = fileTree(customIconDir).matching { include("*.png", "*.jpg", "*.webp") }
-        from(customIconDir)
-        include("*.png", "*.jpg", "*.webp")
-        into(projectDir.resolve("src/main/res/drawable-nodpi"))
-        rename { _ -> "custom_app_icon.png" }
-        doLast {
-            if (pngFiles.isEmpty()) {
-                logger.info("ℹ️ 未在 custom_icon/ 目录中找到图片，使用默认图标")
-            } else {
-                logger.info("✅ 已使用 ${pngFiles.singleFile} 作为自定义APP图标")
-            }
-        }
-    }
-    // 在 mergeResources 之前执行
-    variant.mergeResourcesProvider?.let { provider ->
-        provider.configure { dependsOn(copyCustomIcon) }
-    }
-    true // applicationVariants.all 要求返回 Boolean
-}
-
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
