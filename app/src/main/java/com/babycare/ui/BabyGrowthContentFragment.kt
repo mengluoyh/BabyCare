@@ -184,13 +184,24 @@ class BabyGrowthContentFragment : Fragment() {
         updateWeightUI()
         binding.etWeightInput.text?.clear()
 
-        // 保存体重历史记录
         lifecycleScope.launch {
+            // 保存体重历史记录 + Profile 在同一个协程顺序执行
             weightDao.insert(WeightRecord(weight = w))
+            val profile = currentProfile?.copy(
+                birthDate = birthDate,
+                isLocked = birthLocked,
+                weight = weight,
+                weightLocked = weightLocked
+            ) ?: BabyProfile(
+                birthDate = birthDate,
+                isLocked = birthLocked,
+                weight = weight,
+                weightLocked = weightLocked
+            )
+            babyDao.upsertProfile(profile)
+            loadBabyProfile()
+            Toast.makeText(requireContext(), "体重已保存", Toast.LENGTH_SHORT).show()
         }
-
-        saveProfile()
-        Toast.makeText(requireContext(), "体重已保存", Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleWeightLock() {

@@ -20,10 +20,11 @@ class BabyCareFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (!isAdded) return
         // 直接显示疫苗接种记录，移除体重趋势图
         childFragmentManager.beginTransaction()
             .replace(com.babycare.R.id.childContainer, VaccinationRecordsFragment())
-            .commit()
+            .commitNow()
     }
 
     override fun onDestroyView() {

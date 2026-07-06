@@ -189,9 +189,12 @@ class VaccinationRecordsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         swipeRefresh.setOnRefreshListener {
             lifecycleScope.launch {
-                com.babycare.util.SyncEngine.sync(requireContext())
-                loadVaccines()
-                swipeRefresh.isRefreshing = false
+                try {
+                    com.babycare.util.SyncEngine.sync(requireContext())
+                } finally {
+                    loadVaccines()
+                    swipeRefresh.isRefreshing = false
+                }
             }
         }
         loadVaccines()
