@@ -47,7 +47,7 @@ class FeedingChartFragment : Fragment() {
             val start = AgeCalculator.getPastDaysStart(chartDays - 1)
             val feedings = feedingDao.getFeedingsBetween(start, end)
 
-            val sdf = SimpleDateFormat("MM/dd", Locale.getDefault())
+            val sdf = CHART_FMT
             val dailyData = mutableMapOf<String, Pair<Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
@@ -88,6 +88,10 @@ class FeedingChartFragment : Fragment() {
 
             binding.tvChartLegend.text = "● 母乳 $totalBreast 次    ■ 配方奶 $totalFormula ml"
         }
+    }
+
+    companion object {
+        private val CHART_FMT = SimpleDateFormat("MM/dd", Locale.getDefault())
     }
 
     override fun onDestroyView() {

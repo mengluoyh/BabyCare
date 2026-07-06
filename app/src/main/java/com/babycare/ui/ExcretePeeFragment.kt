@@ -10,7 +10,9 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import com.babycare.BabyCareApp
 import com.babycare.R
 import com.babycare.data.ExcreteRecord
@@ -90,22 +92,18 @@ class ExcretePeeFragment : Fragment() {
 
     inner class PeeAdapter(
         private val onDelete: (ExcreteRecord) -> Unit
-    ) : androidx.recyclerview.widget.RecyclerView.Adapter<PeeAdapter.VH>() {
-        private var records = emptyList<ExcreteRecord>()
-        fun submitList(list: List<ExcreteRecord>) { records = list; notifyDataSetChanged() }
-        override fun getItemCount() = records.size
+    ) : ListAdapter<ExcreteRecord, PeeAdapter.VH>(DiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val itemBinding = com.babycare.databinding.ItemRecordBinding.inflate(
                 LayoutInflater.from(parent.context), parent, false
             )
             return VH(itemBinding)
         }
-        override fun onBindViewHolder(holder: VH, position: Int) { holder.bind(records[position]) }
+        override fun onBindViewHolder(holder: VH, position: Int) { holder.bind(getItem(position)) }
         inner class VH(private val itemBinding: com.babycare.databinding.ItemRecordBinding) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: ExcreteRecord) {
-                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                itemBinding.tvTime.text = sdf.format(Date(r.timestamp))
+                itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
                 val notePart = if (!r.note.isNullOrBlank()) " · ${r.note}" else ""
                 itemBinding.tvDetail.text = "💧 小便$notePart"
                 val diffStr = r.diff?.let {
@@ -117,5 +115,14 @@ class ExcretePeeFragment : Fragment() {
                 itemBinding.btnDelete.setOnClickListener { onDelete(r) }
             }
         }
+
+        companion object {
+            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        }
+    }
+
+    private class DiffCallback : DiffUtil.ItemCallback<ExcreteRecord>() {
+        override fun areItemsTheSame(old: ExcreteRecord, new: ExcreteRecord) = old.id == new.id
+        override fun areContentsTheSame(old: ExcreteRecord, new: ExcreteRecord) = old == new
     }
 }

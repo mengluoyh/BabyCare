@@ -45,7 +45,7 @@ class ExcreteChartFragment : Fragment() {
             val start = AgeCalculator.getPastDaysStart(chartDays - 1)
             val records = excreteDao.getExcretesBetween(start, end)
 
-            val sdf = SimpleDateFormat("MM/dd", Locale.getDefault())
+            val sdf = CHART_FMT
             val dailyData = mutableMapOf<String, Pair<Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
@@ -83,6 +83,10 @@ class ExcreteChartFragment : Fragment() {
 
             binding.tvChartLegend.text = "● 排便 $totalBowel 次    ■ 排尿 $totalPee 次"
         }
+    }
+
+    companion object {
+        private val CHART_FMT = SimpleDateFormat("MM/dd", Locale.getDefault())
     }
 
     override fun onDestroyView() {

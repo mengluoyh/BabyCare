@@ -27,11 +27,6 @@ class SettingsFragment : Fragment() {
         if (uri != null) restoreFromUri(uri)
     }
 
-    // 音频文件选择器：让用户选择自定义铃声
-    private val audioPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) pickRingtoneFromUri(uri)
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -41,7 +36,6 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         loadBackupConfig()
         loadThemeConfig()
-        loadNotifyConfig()
         setupUI()
     }
 
@@ -84,10 +78,6 @@ class SettingsFragment : Fragment() {
             })
             requireActivity().recreate()
         }
-
-        // ─── 通知设置 ───
-        binding.btnPickRingtone.setOnClickListener { pickRingtone() }
-        binding.btnResetRingtone.setOnClickListener { resetRingtone() }
     }
 
     private fun doLocalBackup() {
@@ -225,56 +215,6 @@ class SettingsFragment : Fragment() {
             "dark" -> binding.rbThemeDark.isChecked = true
             else -> binding.rbThemeSystem.isChecked = true
         }
-    }
-
-    // ═══════════════════ 通知设置 ═══════════════════
-
-    /** 加载通知配置到UI */
-    private fun loadNotifyConfig() {
-        // 铃声
-        val audioPath = settings.getCustomAudioPath()
-        if (audioPath != null) {
-            val name = audioPath.substringAfterLast('/').ifEmpty { "自定义铃声" }
-            binding.tvCurrentRingtone.text = name
-        } else {
-            binding.tvCurrentRingtone.text = "默认铃声"
-        }
-        // 音频播报重复次数
-        binding.etAudioRepeatCount.setText(settings.getAudioRepeatCount().toString())
-    }
-
-    /** 打开系统文件选择器，让用户选取音频文件作为自定义铃声 */
-    private fun pickRingtone() {
-        audioPicker.launch(arrayOf("audio/*", "*/*"))
-    }
-
-    /** 将用户选择的音频复制到应用内部存储，并保存路径 */
-    private fun pickRingtoneFromUri(uri: Uri) {
-        binding.tvNotifyStatus.text = "⏳ 正在复制铃声..."
-        try {
-            val input = requireContext().contentResolver.openInputStream(uri) ?: return
-            val dir = java.io.File(requireContext().filesDir, "ringtones")
-            dir.mkdirs()
-            val dest = java.io.File(dir, "custom_ringtone_${System.currentTimeMillis()}.mp3")
-            input.use { inp ->
-                dest.outputStream().use { out ->
-                    inp.copyTo(out)
-                }
-            }
-            val savedPath = dest.absolutePath
-            settings.saveCustomAudioPath(savedPath)
-            binding.tvCurrentRingtone.text = dest.name
-            binding.tvNotifyStatus.text = "✅ 已设为自定义铃声: ${dest.name}"
-        } catch (e: Exception) {
-            binding.tvNotifyStatus.text = "❌ 设置铃声失败: ${e.message}"
-        }
-    }
-
-    /** 恢复默认铃声 */
-    private fun resetRingtone() {
-        settings.saveCustomAudioPath(null)
-        binding.tvCurrentRingtone.text = "默认铃声"
-        binding.tvNotifyStatus.text = "✅ 已恢复默认铃声"
     }
 
     override fun onDestroyView() {

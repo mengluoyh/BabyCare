@@ -14,10 +14,9 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.babycare.MainActivity
 import com.babycare.data.SettingsManager
-import com.babycare.util.AudioPlayer
 
 /**
- * 前台服务：倒计时结束后在后台处理音频播报、高优通知。
+ * 前台服务：倒计时结束后发送高优通知。
  * 通知附带 fullScreenIntent 打开 MainActivity，让 TimerFragment 弹出「我知道了」对话框。
  * 用户点击"我知道了"后由 MainActivity/TimerFragment 发送停止指令。
  */
@@ -34,7 +33,6 @@ class AlertService : Service() {
     }
 
     private lateinit var settings: SettingsManager
-    private var mediaPlayer: android.media.MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var autoStopRunnable: Runnable? = null
 
@@ -60,9 +58,6 @@ class AlertService : Service() {
     private fun startAlert() {
         // 前台服务通知
         startForeground(NOTIFICATION_ID, buildNotification())
-
-        // 播放音频铃声
-        playAudio()
 
         // 标记有待处理的提醒（Fragment 恢复时据此弹窗）
         settings.saveAlertPending(true)
@@ -111,25 +106,8 @@ class AlertService : Service() {
         }
     }
 
-    private fun playAudio() {
-        val audioPath = settings.getCustomAudioPath()
-        val repeatCount = settings.getAudioRepeatCount()
-        mediaPlayer = AudioPlayer.playWithRepeatCount(this, audioPath, repeatCount) {
-            // 播放完毕，无额外操作（弹窗继续）
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        // 停止音频
-        try {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-        } catch (e: Exception) {
-            android.util.Log.w("AlertService", "停止音频失败", e)
-        }
-        mediaPlayer = null
-
         // 清除所有 Handler 回调
         handler.removeCallbacksAndMessages(null)
         autoStopRunnable = null

@@ -75,7 +75,7 @@ object ChartDrawer {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * density).toInt()
                 )
-                setBackgroundColor(0x15FFFFFF.toInt())
+                setBackgroundColor(0x30000000.toInt()) // 半透明黑，深浅色主题均可见
             }
             gridContainer.addView(spacer)
             gridContainer.addView(line)
@@ -215,7 +215,7 @@ object ChartDrawer {
                 text = if (showLabel) date else ""
                 textSize = 7f
                 gravity = Gravity.CENTER
-                setTextColor(0xFF000000.toInt())
+                setTextColor(androidx.core.content.ContextCompat.getColor(ctx, com.babycare.R.color.on_background))
             })
 
             columnsContainer.addView(col)

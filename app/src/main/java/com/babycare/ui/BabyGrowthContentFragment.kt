@@ -2,6 +2,7 @@
 package com.babycare.ui
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,7 +11,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.babycare.BabyCareApp
 import com.babycare.R
 import com.babycare.data.BabyProfile
@@ -40,6 +44,11 @@ class BabyGrowthContentFragment : Fragment() {
     private var selectedVaccinationTime: Long = 0L
     private var selectedNextVaccinationTime: Long? = null
     private lateinit var vaccineAdapter: VaccineListAdapter
+
+    companion object {
+        private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        private val BIRTH_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBabyGrowthContentBinding.inflate(inflater, container, false)
@@ -71,8 +80,7 @@ class BabyGrowthContentFragment : Fragment() {
     }
 
     private fun updateBirthUI() {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        binding.tvBirthDate.text = if (birthDate > 0) sdf.format(Date(birthDate)) else "未设置"
+        binding.tvBirthDate.text = if (birthDate > 0) BIRTH_FMT.format(Date(birthDate)) else "未设置"
         binding.btnLockBirth.text = if (birthLocked) "🔓 已锁定" else "🔒 锁定"
         binding.btnEditBirth.isEnabled = !birthLocked
     }
@@ -116,8 +124,8 @@ class BabyGrowthContentFragment : Fragment() {
         }
         binding.rgAgeUnit.setOnCheckedChangeListener { _, checkedId ->
             val unit = when (checkedId) {
-                com.babycare.R.id.rbAgeDay -> "day"
-                com.babycare.R.id.rbAgeWeek -> "week"
+                R.id.rbAgeDay -> "day"
+                R.id.rbAgeWeek -> "week"
                 else -> "month"
             }
             settings.saveAgeUnit(unit)
@@ -127,7 +135,7 @@ class BabyGrowthContentFragment : Fragment() {
         binding.btnSaveWeight.setOnClickListener { saveWeight() }
         binding.btnLockWeight.setOnClickListener { toggleWeightLock() }
         binding.rgWeightUnit.setOnCheckedChangeListener { _, checkedId ->
-            val unit = if (checkedId == com.babycare.R.id.rbWeightJin) "jin" else "kg"
+            val unit = if (checkedId == R.id.rbWeightJin) "jin" else "kg"
             settings.saveWeightUnit(unit)
             updateWeightUI()
         }
@@ -199,7 +207,6 @@ class BabyGrowthContentFragment : Fragment() {
 
     // ═══════════════════ 疫苗接种管理 ═══════════════════
 
-    /** 是否正在编辑已有记录（解锁后编辑模式） */
     private var editingVaccineRecord: VaccinationRecord? = null
 
     private fun setupVaccineUI() {
@@ -209,24 +216,31 @@ class BabyGrowthContentFragment : Fragment() {
 
         binding.etVaccinationTime.setOnClickListener { showDateTimePicker { time ->
             selectedVaccinationTime = time
-            binding.etVaccinationTime.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(time)))
+            binding.etVaccinationTime.setText(DATE_FMT.format(Date(time)))
         }}
 
         binding.etNextVaccination.setOnClickListener { showDateTimePicker { time ->
             selectedNextVaccinationTime = time
-            binding.etNextVaccination.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(time)))
+            binding.etNextVaccination.setText(DATE_FMT.format(Date(time)))
         }}
 
         binding.btnSaveVaccine.setOnClickListener { saveVaccine() }
         binding.btnUnlockVaccine.setOnClickListener { unlockLastVaccine() }
     }
 
+    /** 日期+时间选择器（日期 + 时分） */
     private fun showDateTimePicker(onSelected: (Long) -> Unit) {
         val cal = Calendar.getInstance()
         DatePickerDialog(requireContext(), { _, year, month, day ->
             cal.set(year, month, day, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), 0)
             cal.set(Calendar.MILLISECOND, 0)
-            onSelected(cal.timeInMillis)
+            // 弹出时间选择器
+            TimePickerDialog(requireContext(), { _, hour, minute ->
+                cal.set(Calendar.HOUR_OF_DAY, hour)
+                cal.set(Calendar.MINUTE, minute)
+                cal.set(Calendar.SECOND, 0)
+                onSelected(cal.timeInMillis)
+            }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
@@ -242,7 +256,6 @@ class BabyGrowthContentFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            // 如果正在编辑已有记录，保留其 id 实现覆盖更新
             val existingId = editingVaccineRecord?.id ?: 0
             val record = VaccinationRecord(
                 id = existingId,
@@ -256,29 +269,27 @@ class BabyGrowthContentFragment : Fragment() {
             vaccineDao.upsert(record)
             Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存", Toast.LENGTH_SHORT).show()
             // 保存后不锁定、不清空输入框、不清除 editingVaccineRecord
-            // 用户可直接继续修改或再次保存
             loadVaccines()
         }
     }
 
     private fun unlockLastVaccine() {
         lifecycleScope.launch {
-            val records = vaccineDao.getAllSnapshot()
-            val lastLocked = records.firstOrNull { it.isLocked }
-            if (lastLocked != null) {
-                val unlocked = lastLocked.copy(isLocked = false)
+            val locked = vaccineDao.getFirstLocked()
+            if (locked != null) {
+                val unlocked = locked.copy(isLocked = false)
                 vaccineDao.upsert(unlocked)
-                Toast.makeText(requireContext(), "🔓 已解锁「${lastLocked.vaccineName}」，可修改", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "🔓 已解锁「${locked.vaccineName}」，可修改", Toast.LENGTH_SHORT).show()
                 // 预填数据到输入框
                 editingVaccineRecord = unlocked
                 binding.etVaccineName.setText(unlocked.vaccineName)
                 if (unlocked.vaccinationTime > 0) {
                     selectedVaccinationTime = unlocked.vaccinationTime
-                    binding.etVaccinationTime.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(unlocked.vaccinationTime)))
+                    binding.etVaccinationTime.setText(DATE_FMT.format(Date(unlocked.vaccinationTime)))
                 }
                 if (unlocked.nextVaccinationTime != null && unlocked.nextVaccinationTime!! > 0) {
                     selectedNextVaccinationTime = unlocked.nextVaccinationTime
-                    binding.etNextVaccination.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(unlocked.nextVaccinationTime!!)))
+                    binding.etNextVaccination.setText(DATE_FMT.format(Date(unlocked.nextVaccinationTime!!)))
                 }
                 binding.etNextVaccineName.setText(unlocked.nextVaccineName ?: "")
                 binding.etVaccineNote.setText(unlocked.note ?: "")
@@ -306,7 +317,6 @@ class BabyGrowthContentFragment : Fragment() {
             .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch {
                     vaccineDao.delete(record)
-                    // 如果删除的是正在编辑的记录，仅清空输入框但不禁用
                     if (editingVaccineRecord?.id == record.id) {
                         editingVaccineRecord = null
                         clearVaccineInput()
@@ -342,17 +352,14 @@ class BabyGrowthContentFragment : Fragment() {
         _binding = null
     }
 
-    // ─── 疫苗列表适配器 ──────────────────────────────
+    // ─── 疫苗列表适配器（ListAdapter + DiffUtil） ───────────
 
     inner class VaccineListAdapter(
         private val onDelete: (VaccinationRecord) -> Unit
-    ) : androidx.recyclerview.widget.RecyclerView.Adapter<VaccineListAdapter.VH>() {
-
-        private var records = emptyList<VaccinationRecord>()
+    ) : ListAdapter<VaccinationRecord, VaccineListAdapter.VH>(DiffCallback()) {
 
         fun submitList(list: List<VaccinationRecord>) {
-            records = list
-            notifyDataSetChanged()
+            (this as ListAdapter<VaccinationRecord, VH>).submitList(list)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -363,30 +370,35 @@ class BabyGrowthContentFragment : Fragment() {
                 ).also { it.setMargins(0, 4, 0, 4) }
                 textSize = 13f
                 setPadding(8, 8, 8, 8)
-                setBackgroundColor(requireContext().getColor(com.babycare.R.color.surface_variant))
-                setTextColor(requireContext().getColor(com.babycare.R.color.on_background))
+                setBackgroundColor(requireContext().getColor(R.color.surface_variant))
+                setTextColor(requireContext().getColor(R.color.on_background))
             }
             return VH(tv)
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
-            val r = records[position]
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            val nextStr = r.nextVaccinationTime?.let { 
+            val r = getItem(position)
+            val nextStr = r.nextVaccinationTime?.let {
                 val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-                " → 下次${nameStr}: ${sdf.format(Date(it))}" 
+                " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
             } ?: ""
             val noteStr = if (!r.note.isNullOrBlank()) " · ${r.note}" else ""
             val lockIcon = if (r.isLocked) "🔒" else "🔓"
-            holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${sdf.format(Date(r.vaccinationTime))}$nextStr$noteStr"
+            holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
             holder.itemView.setOnLongClickListener {
                 onDelete(r)
                 true
             }
         }
 
-        override fun getItemCount() = records.size
+        inner class VH(val tv: android.widget.TextView) : RecyclerView.ViewHolder(tv)
+    }
 
-        inner class VH(val tv: android.widget.TextView) : androidx.recyclerview.widget.RecyclerView.ViewHolder(tv)
+    class DiffCallback : DiffUtil.ItemCallback<VaccinationRecord>() {
+        override fun areItemsTheSame(old: VaccinationRecord, new: VaccinationRecord): Boolean =
+            old.id == new.id
+
+        override fun areContentsTheSame(old: VaccinationRecord, new: VaccinationRecord): Boolean =
+            old == new
     }
 }

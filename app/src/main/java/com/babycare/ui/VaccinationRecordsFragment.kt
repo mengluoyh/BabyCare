@@ -14,6 +14,8 @@ import com.babycare.data.VaccinationRecord
 import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -110,7 +112,7 @@ class VaccinationRecordsFragment : Fragment() {
                 Toast.makeText(requireContext(), "没有疫苗记录可导出", Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            val sdf = DATE_FMT
             val sb = StringBuilder()
             sb.appendLine("========== 疫苗接种记录导出 ==========")
             sb.appendLine("导出时间：${sdf.format(Date())}")
@@ -143,14 +145,8 @@ class VaccinationRecordsFragment : Fragment() {
 }
 
 /** 疫苗记录列表适配器 */
-class VaccineListViewAdapter : androidx.recyclerview.widget.RecyclerView.Adapter<VaccineListViewAdapter.VH>() {
-
-    private var records = emptyList<VaccinationRecord>()
-
-    fun submitList(list: List<VaccinationRecord>) {
-        records = list
-        notifyDataSetChanged()
-    }
+class VaccineListViewAdapter :
+    ListAdapter<VaccinationRecord, VaccineListViewAdapter.VH>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val tv = android.widget.TextView(parent.context).apply {
@@ -166,18 +162,24 @@ class VaccineListViewAdapter : androidx.recyclerview.widget.RecyclerView.Adapter
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val r = records[position]
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val r = getItem(position)
         val nextStr = r.nextVaccinationTime?.let {
             val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-            " → 下次${nameStr}: ${sdf.format(Date(it))}"
+            " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
         } ?: ""
         val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
         val lockIcon = if (r.isLocked) "🔒" else "🔓"
-        holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${sdf.format(Date(r.vaccinationTime))}$nextStr$noteStr"
+        holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
     }
 
-    override fun getItemCount() = records.size
-
     inner class VH(val tv: android.widget.TextView) : androidx.recyclerview.widget.RecyclerView.ViewHolder(tv)
+
+    companion object {
+        private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    }
+}
+
+private class DiffCallback : DiffUtil.ItemCallback<VaccinationRecord>() {
+    override fun areItemsTheSame(old: VaccinationRecord, new: VaccinationRecord) = old.id == new.id
+    override fun areContentsTheSame(old: VaccinationRecord, new: VaccinationRecord) = old == new
 }

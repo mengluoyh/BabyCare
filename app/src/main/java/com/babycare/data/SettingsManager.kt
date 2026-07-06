@@ -15,9 +15,6 @@ class SettingsManager(context: Context) {
     fun getNextFeedTime(): Long = prefs.getLong("next_feed_time", 0L)
     fun saveNextFeedTime(time: Long) = prefs.edit().putLong("next_feed_time", time).apply()
 
-    fun getCustomAudioPath(): String? = prefs.getString("custom_audio_path", null)
-    fun saveCustomAudioPath(path: String?) = prefs.edit().putString("custom_audio_path", path).apply()
-
     fun getPauseRemaining(): Long = prefs.getLong("pause_remaining", 0L)
     fun savePauseRemaining(ms: Long) = prefs.edit().putLong("pause_remaining", ms).apply()
     fun isPaused(): Boolean = prefs.getBoolean("is_paused", false)
@@ -38,11 +35,6 @@ class SettingsManager(context: Context) {
     // ─── 体重单位: "kg" | "jin" ───
     fun getWeightUnit(): String = prefs.getString("weight_unit", "kg") ?: "kg"
     fun saveWeightUnit(unit: String) = prefs.edit().putString("weight_unit", unit).apply()
-
-    // ─── 音频播报重复次数 ───
-    /** 音频播报重复播放次数，默认3次 */
-    fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 3)
-    fun saveAudioRepeatCount(count: Int) = prefs.edit().putInt("audio_repeat_count", count).apply()
 
     // ─── 提醒待处理标记 ───
     /** 倒计时结束后是否有待处理的喂奶提醒弹窗 */

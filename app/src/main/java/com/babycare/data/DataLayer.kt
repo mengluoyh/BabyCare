@@ -161,6 +161,9 @@ interface VaccineDao {
     @Query("SELECT * FROM vaccination_records WHERE id = :id")
     suspend fun getById(id: Int): VaccinationRecord?
 
+    @Query("SELECT * FROM vaccination_records WHERE isLocked = 1 ORDER BY vaccinationTime DESC LIMIT 1")
+    suspend fun getFirstLocked(): VaccinationRecord?
+
     @Delete
     suspend fun delete(record: VaccinationRecord)
 

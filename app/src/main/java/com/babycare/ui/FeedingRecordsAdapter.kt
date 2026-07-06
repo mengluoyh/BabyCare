@@ -1,4 +1,4 @@
-// BabyCare/app/src/main/java/com/example/babycare/ui/FeedingRecordAdapter.kt
+// BabyCare/app/src/main/java/com/babycare/ui/FeedingRecordAdapter.kt
 package com.babycare.ui
 
 import android.view.LayoutInflater
@@ -7,18 +7,21 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.babycare.data.FeedingRecord
 import com.babycare.databinding.ItemRecordBinding
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 class FeedingRecordAdapter(private val onDelete: (FeedingRecord) -> Unit) :
-    RecyclerView.Adapter<FeedingRecordAdapter.ViewHolder>() {
+    ListAdapter<FeedingRecord, FeedingRecordAdapter.ViewHolder>(DiffCallback()) {
 
-    private var records = emptyList<FeedingRecord>()
-
-    fun submitList(list: List<FeedingRecord>) {
-        records = list
-        notifyDataSetChanged()
+    companion object {
+        private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        private class DiffCallback : DiffUtil.ItemCallback<FeedingRecord>() {
+            override fun areItemsTheSame(old: FeedingRecord, new: FeedingRecord) = old.id == new.id
+            override fun areContentsTheSame(old: FeedingRecord, new: FeedingRecord) = old == new
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -27,15 +30,12 @@ class FeedingRecordAdapter(private val onDelete: (FeedingRecord) -> Unit) :
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(records[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount() = records.size
 
     inner class ViewHolder(private val binding: ItemRecordBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(record: FeedingRecord) {
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            binding.tvTime.text = sdf.format(Date(record.timestamp))
+            binding.tvTime.text = DATE_FMT.format(Date(record.timestamp))
             binding.tvDetail.text = "${if (record.feedType == "breast") "🤱 母乳" else "🍼 配方奶"}" +
                     if (record.volume != null) " | ${record.volume} ml" else ""
             val diffStr = record.diff?.let {

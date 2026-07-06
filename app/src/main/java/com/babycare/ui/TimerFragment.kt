@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 
 /**
  * 计时页面。UI 层：展示倒计时、弹窗提醒。
- * 音频播报由 [com.babycare.service.AlertService] 处理。
+ * 提醒通知由 [com.babycare.service.AlertService] 处理。
  */
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
@@ -154,7 +154,7 @@ class TimerFragment : Fragment() {
         }
     }
 
-    // ═══════════════════ 提醒（仅弹窗，音频/震动由 AlertService 处理） ═══════════════════
+    // ═══════════════════ 提醒（仅弹窗，无音频/震动） ═══════════════════
 
     /** 显示「我知道了」弹窗 */
     private fun showAlertDialog() {

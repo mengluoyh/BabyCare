@@ -25,9 +25,14 @@ import java.util.*
 
 /**
  * 倒计时 ViewModel，管理喂奶倒计时逻辑、喂养记录写入和今日统计。
- * 不持有任何 UI 引用（AlertDialog、AudioPlayer 等由 Fragment 处理）。
+ * 不持有任何 UI 引用（AlertDialog、AlertService 等由 Fragment 处理）。
  */
 class CountdownViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        /** 预计时间格式化（线程安全：仅在主线程使用） */
+        private val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
+    }
 
     private val app = application as BabyCareApp
     private val settings = SettingsManager(application)
@@ -208,15 +213,13 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
                 val now = System.currentTimeMillis()
-                val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-                val breastTimeStr = if (breastTs > 0) sdf.format(Date(breastTs)) else "--:--"
+                val breastTimeStr = if (breastTs > 0) TIME_FMT.format(Date(breastTs)) else "--:--"
                 val breastDetail = if (breastTs > 0) {
                     val elapsed = now - breastTs
                     formatDurationBrief(elapsed)
                 } else "暂无记录"
 
-                val formulaTimeStr = if (formulaTs > 0) sdf.format(Date(formulaTs)) else "--:--"
+                val formulaTimeStr = if (formulaTs > 0) TIME_FMT.format(Date(formulaTs)) else "--:--"
                 val formulaDetail = if (formulaTs > 0) {
                     val elapsed = now - formulaTs
                     formatDurationBrief(elapsed)
@@ -278,12 +281,12 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /** 倒计时自然结束 → 后台启动 AlertService 处理音频/通知，同时触发 Fragment 弹窗 */
+    /** 倒计时自然结束 → 后台启动 AlertService 处理通知，同时触发 Fragment 弹窗 */
     private fun onTimerFinished() {
         cancelTimer()
         // 保存提醒待处理标记（Fragment 恢复时据此弹窗）
         settings.saveAlertPending(true)
-        // 启动前台服务处理后台提醒（音频、全屏通知）
+        // 启动前台服务处理后台提醒（全屏通知）
         val ctx = getApplication<Application>()
         val intent = Intent(ctx, AlertService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -343,7 +346,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         val text = if (remainingMs <= 0) ""
         else {
             val clock = System.currentTimeMillis() + remainingMs
-            "预计 ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(clock))} 可以喂奶"
+            "预计 ${TIME_FMT.format(Date(clock))} 可以喂奶"
         }
         updateState { copy(estimatedTimeText = text) }
     }
@@ -417,7 +420,7 @@ data class CountdownUiState(
 )
 
 sealed class CountdownEvent {
-    /** 触发喂奶提醒（音频+对话框） */
+    /** 触发喂奶提醒（对话框） */
     data object TriggerAlert : CountdownEvent()
     /** 关闭提醒 */
     data object DismissAlert : CountdownEvent()

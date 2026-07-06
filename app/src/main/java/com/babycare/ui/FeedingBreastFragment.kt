@@ -14,6 +14,8 @@ import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.databinding.FragmentFeedingBreastBinding
 import kotlinx.coroutines.launch
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -62,14 +64,7 @@ class FeedingBreastFragment : Fragment() {
 
     inner class BreastAdapter(
         private val onDelete: (FeedingRecord) -> Unit
-    ) : androidx.recyclerview.widget.RecyclerView.Adapter<BreastAdapter.VH>() {
-
-        private var records = emptyList<FeedingRecord>()
-
-        fun submitList(list: List<FeedingRecord>) {
-            records = list
-            notifyDataSetChanged()
-        }
+    ) : ListAdapter<FeedingRecord, BreastAdapter.VH>(DiffCallback()) {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val itemBinding = com.babycare.databinding.ItemRecordBinding.inflate(
@@ -79,16 +74,13 @@ class FeedingBreastFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
-            holder.bind(records[position])
+            holder.bind(getItem(position))
         }
-
-        override fun getItemCount() = records.size
 
         inner class VH(private val itemBinding: com.babycare.databinding.ItemRecordBinding) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: FeedingRecord) {
-                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                itemBinding.tvTime.text = sdf.format(Date(r.timestamp))
+                itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
                 itemBinding.tvDetail.text = "🤱 母乳"
                 val diffStr = r.diff?.let {
                     val minutes = TimeUnit.MILLISECONDS.toMinutes(it)
@@ -99,5 +91,14 @@ class FeedingBreastFragment : Fragment() {
                 itemBinding.btnDelete.setOnClickListener { onDelete(r) }
             }
         }
+
+        companion object {
+            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        }
+    }
+
+    private class DiffCallback : DiffUtil.ItemCallback<FeedingRecord>() {
+        override fun areItemsTheSame(old: FeedingRecord, new: FeedingRecord) = old.id == new.id
+        override fun areContentsTheSame(old: FeedingRecord, new: FeedingRecord) = old == new
     }
 }

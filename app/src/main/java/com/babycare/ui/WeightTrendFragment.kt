@@ -14,6 +14,8 @@ import com.babycare.data.WeightRecord
 import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,9 +34,7 @@ class WeightTrendFragment : Fragment() {
     private lateinit var emptyText: android.widget.TextView
 
     override fun onCreateView(inflater: android.view.LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return object : android.widget.ScrollView(requireContext()) {
-            override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
-        }.apply {
+        return android.widget.ScrollView(requireContext()).apply {
             isFillViewport = true
             setBackgroundColor(requireContext().getColor(com.babycare.R.color.background))
 
@@ -188,7 +188,7 @@ class WeightTrendFragment : Fragment() {
                 Toast.makeText(requireContext(), "没有体重记录可导出", Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val sdf = EX_FMT
             val sb = StringBuilder()
             sb.appendLine("========== 体重记录导出 ==========")
             sb.appendLine("导出时间：${sdf.format(Date())}")
@@ -213,10 +213,7 @@ class WeightTrendFragment : Fragment() {
     /** 体重记录列表适配器 */
     inner class RecordListAdapter(
         private val onDelete: (WeightRecord) -> Unit
-    ) : androidx.recyclerview.widget.RecyclerView.Adapter<RecordListAdapter.VH>() {
-        private var records = emptyList<WeightRecord>()
-        fun submitList(list: List<WeightRecord>) { records = list; notifyDataSetChanged() }
-        override fun getItemCount() = records.size
+    ) : ListAdapter<WeightRecord, RecordListAdapter.VH>(DiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val tv = android.widget.TextView(parent.context).apply {
                 layoutParams = ViewGroup.MarginLayoutParams(
@@ -227,19 +224,29 @@ class WeightTrendFragment : Fragment() {
                 setBackgroundColor(0x0A000000.toInt())
                 setOnLongClickListener {
                     val pos = getTag() as? Int ?: return@setOnLongClickListener true
-                    if (pos < records.size) onDelete(records[pos])
+                    if (pos < itemCount) onDelete(getItem(pos))
                     true
                 }
             }
             return VH(tv)
         }
         override fun onBindViewHolder(holder: VH, position: Int) {
-            val r = records[position]
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            holder.tv.text = "${sdf.format(Date(r.timestamp))}    ⚖️ ${r.weight} kg"
+            val r = getItem(position)
+            holder.tv.text = "${DATE_FMT.format(Date(r.timestamp))}    ⚖️ ${r.weight} kg"
             holder.tv.setTag(position)
         }
         inner class VH(val tv: android.widget.TextView) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(tv)
+
+        companion object {
+            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        }
+    }
+
+    private val EX_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
+    private class DiffCallback : DiffUtil.ItemCallback<WeightRecord>() {
+        override fun areItemsTheSame(old: WeightRecord, new: WeightRecord) = old.id == new.id
+        override fun areContentsTheSame(old: WeightRecord, new: WeightRecord) = old == new
     }
 }
