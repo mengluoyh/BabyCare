@@ -242,9 +242,11 @@ class SettingsFragment : Fragment() {
         }
         // 音频播报重复次数
         binding.etAudioRepeatCount.setText(settings.getAudioRepeatCount().toString())
-        // 震动参数
-        binding.etVibrateDuration.setText(settings.getVibrateDuration().toString())
-        binding.etVibrateInterval.setText(settings.getVibrateInterval().toString())
+        // 震动参数（转秒显示）
+        val durSec = settings.getVibrateDuration() / 1000L
+        val intSec = settings.getVibrateInterval() / 1000L
+        binding.etVibrateDuration.setText(durSec.toString())
+        binding.etVibrateInterval.setText(intSec.toString())
     }
 
     /** 打开系统文件选择器，让用户选取音频文件作为自定义铃声 */
@@ -293,11 +295,11 @@ class SettingsFragment : Fragment() {
         var interval = intText.toLongOrNull()
         if (dur == null || dur < 0) { binding.etVibrateDuration.error = "无效数字"; return }
         if (interval == null || interval < 0) { binding.etVibrateInterval.error = "无效数字"; return }
-        // 确保最小值
+        // 确保最小值（秒→毫秒）
         if (dur == 0L) dur = 1L
         if (interval == 0L) interval = 1L
-        settings.saveVibrateDuration(dur)
-        settings.saveVibrateInterval(interval)
+        settings.saveVibrateDuration(dur * 1000L)
+        settings.saveVibrateInterval(interval * 1000L)
 
         // 音频播报重复次数
         val repeatText = binding.etAudioRepeatCount.text.toString()
@@ -311,7 +313,7 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        binding.tvNotifyStatus.text = "✅ 设置已保存（震动${dur}ms, 间隔${interval}ms, 重复${settings.getAudioRepeatCount()}次）"
+        binding.tvNotifyStatus.text = "✅ 设置已保存（震动${dur}秒, 间隔${interval}秒, 重复${settings.getAudioRepeatCount()}次）"
     }
 
     override fun onDestroyView() {

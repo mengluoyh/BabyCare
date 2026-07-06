@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CompoundButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -39,6 +40,7 @@ class TimerFragment : Fragment() {
     private var mediaPlayer: android.media.MediaPlayer? = null
     private var alertDialog: androidx.appcompat.app.AlertDialog? = null
     private val handler = Handler(Looper.getMainLooper())
+    private val settings by lazy { com.babycare.data.SettingsManager(requireContext()) }
 
     // 周期性震动（每1分钟一次，30秒后开始）
     private var vibrationJob: kotlinx.coroutines.Job? = null
@@ -126,6 +128,19 @@ class TimerFragment : Fragment() {
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
             binding.etCustomFormula.text?.clear()
         }
+
+        // ─── 悬浮窗开关 ───
+        binding.swOverlay.isChecked = settings.getOverlayEnabled()
+        binding.swOverlay.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
+            settings.saveOverlayEnabled(checked)
+            if (!checked) CountdownOverlay.hide()
+            else {
+                val state = viewModel.uiState.value
+                if (state.isPauseEnabled && !state.isPaused) {
+                    CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
+                }
+            }
+        }
     }
 
     // ═══════════════════ 状态观察 ═══════════════════
@@ -149,9 +164,11 @@ class TimerFragment : Fragment() {
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
                     binding.btnPause.isEnabled = state.isPauseEnabled
 
-                    // 倒计时进行中 → 显示悬浮窗
+                    // 倒计时进行中 → 显示悬浮窗（根据开关和权限）
                     if (state.isPauseEnabled && !state.isPaused) {
-                        CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
+                        if (settings.getOverlayEnabled()) {
+                            CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
+                        }
                     } else {
                         CountdownOverlay.hide()
                     }
@@ -270,7 +287,6 @@ class TimerFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        CountdownOverlay.hide()
         handler.removeCallbacksAndMessages(null)
         vibrationJob?.cancel()
         vibrationJob = null

@@ -48,6 +48,11 @@ class SettingsManager(context: Context) {
     fun getVibrateInterval(): Long = prefs.getLong("vibrate_interval", 60000L)
     fun saveVibrateInterval(ms: Long) = prefs.edit().putLong("vibrate_interval", ms).apply()
 
+    // ─── 悬浮窗开关 ───
+    /** 倒计时悬浮窗是否启用，默认启用 */
+    fun getOverlayEnabled(): Boolean = prefs.getBoolean("overlay_enabled", true)
+    fun saveOverlayEnabled(enabled: Boolean) = prefs.edit().putBoolean("overlay_enabled", enabled).apply()
+
     // ─── 音频播报重复次数 ───
     /** 音频播报重复播放次数，默认3次 */
     fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 3)

@@ -46,20 +46,22 @@ object CountdownOverlay {
                 WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                     or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                    or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                    or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 100 // 距离顶部 100px
+            y = 60 // 距离顶部 60px
         }
 
         overlayView = TextView(context).apply {
             this.text = text
-            textSize = 32f
+            textSize = 18f
             setTextColor(Color.WHITE)
-            setBackgroundColor(Color.argb(180, 0, 0, 0))
+            setBackgroundColor(Color.argb(200, 0, 0, 0))
             gravity = Gravity.CENTER
-            setPadding(32, 16, 32, 16)
+            setPadding(16, 8, 16, 8)
             elevation = 10f
         }
 
