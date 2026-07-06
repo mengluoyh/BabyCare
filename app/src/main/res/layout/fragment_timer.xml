@@ -90,6 +90,10 @@
                             android:text=" 分钟"
                             android:layout_gravity="center_vertical"
                             android:textColor="@color/on_surface_variant" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSetInterval"
                             android:layout_width="wrap_content"

@@ -12,18 +12,20 @@ import com.babycare.data.SettingsManager
 import com.babycare.util.AgeCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
  * 倒计时 ViewModel，管理喂奶倒计时逻辑、喂养记录写入和今日统计。
- * 倒计时结束后自动记录配方奶、重启倒计时并播报音频（如已配置）。
+ * 倒计时结束后自动记录配方奶、弹窗提醒、循环播报音频。
  */
 class CountdownViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -41,6 +43,10 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private val _uiState = MutableStateFlow(CountdownUiState())
     val uiState: StateFlow<CountdownUiState> = _uiState.asStateFlow()
 
+    // ─── 一次性事件（Fragment 监听） ────────────────
+    private val _events = MutableSharedFlow<CountdownEvent>()
+    val events: SharedFlow<CountdownEvent> = _events.asSharedFlow()
+
     // ─── 内部状态 ──────────────────────────────────
     private var nextFeedTime: Long = 0
     private var isPaused = false
@@ -49,6 +55,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private var birthDate: Long = 0
     private var countDownJob: kotlinx.coroutines.Job? = null
     private var timeSinceJob: kotlinx.coroutines.Job? = null
+    private var audioPlayer: MediaPlayer? = null
 
     init {
         intervalMinutes = settings.getInterval()
@@ -88,6 +95,9 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             )
             feedingDao.insert(record)
             refreshTodayStats()
+            // 停止音频播报并关闭弹窗
+            stopAudio()
+            _events.emit(CountdownEvent.DismissAlert)
             // 重置倒计时（无论母乳还是配方奶）
             cancelTimer()
             nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
@@ -247,6 +257,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         super.onCleared()
         cancelTimer()
         timeSinceJob?.cancel()
+        stopAudio()
     }
 
     // ═══════════════════ 内部方法 ═══════════════════
@@ -274,7 +285,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /** 倒计时自然结束 → 自动记录配方奶 + 重启倒计时 + 播报音频 */
+    /** 倒计时自然结束 → 自动记录配方奶 + 弹窗提醒 + 循环播报音频 */
     private fun onTimerFinished() {
         cancelTimer()
         // 自动记录配方奶
@@ -290,18 +301,16 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             ))
             refreshTodayStats()
         }
-        // 自动续时并重启倒计时
-        nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
-        settings.saveNextFeedTime(nextFeedTime)
         updateState {
             copy(
-                isPauseEnabled = true,
-                labelText = "⏰ 已自动续时"
+                isPauseEnabled = false,
+                labelText = "⏰ 喂奶时间到！"
             )
         }
-        startCountdown()
-        // 播报音频（如已配置）
-        playAlertAudio()
+        // 开始循环播报音频
+        playAlertAudioLoop()
+        // 触发弹窗事件
+        viewModelScope.launch { _events.emit(CountdownEvent.TriggerAlert) }
     }
 
     private fun cancelTimer() {
@@ -311,46 +320,49 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ═══════════════════ 音频播报 ═══════════════════
 
-    /** 如果已配置音频文件，播放播报音频 */
-    private fun playAlertAudio() {
+    /** 循环播报音频（isLooping=true 持续播放直到外部停止） */
+    private fun playAlertAudioLoop() {
         val audioPath = settings.getAudioFilePath()
         if (audioPath.isEmpty()) return
-        val repeatCount = settings.getAudioRepeatCount()
-        viewModelScope.launch {
+        stopAudio()
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(audioPath)
-                playAudioLoop(uri, repeatCount)
+                audioPlayer = MediaPlayer().apply {
+                    setDataSource(getApplication<Application>(), uri)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
             } catch (_: Exception) {
                 // 音频播放失败不影响倒计时
             }
         }
     }
 
-    /** 在 IO 线程循环播放音频指定次数 */
-    private suspend fun playAudioLoop(uri: Uri, times: Int) = withContext(Dispatchers.IO) {
-        repeat(times) {
-            var player: MediaPlayer? = null
-            try {
-                player = MediaPlayer().apply {
-                    setDataSource(getApplication<Application>(), uri)
-                    prepare()
-                    start()
-                }
-                suspendCancellableCoroutine<Unit> { cont ->
-                    player?.setOnCompletionListener {
-                        player?.release()
-                        cont.resume(Unit)
-                    }
-                    player?.setOnErrorListener { _, _, _ ->
-                        player?.release()
-                        cont.resume(Unit)
-                        true
-                    }
-                }
-            } catch (e: Exception) {
-                player?.release()
-            }
+    /** 停止音频播报并释放资源 */
+    private fun stopAudio() {
+        try {
+            audioPlayer?.stop()
+        } catch (_: Exception) { }
+        audioPlayer?.release()
+        audioPlayer = null
+    }
+
+    /** 用户点击"来了来了"确认 → 停止播报 + 关闭弹窗 + 续时重启倒计时 */
+    fun dismissAlert() {
+        stopAudio()
+        viewModelScope.launch { _events.emit(CountdownEvent.DismissAlert) }
+        // 续时并重启倒计时
+        nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
+        settings.saveNextFeedTime(nextFeedTime)
+        updateState {
+            copy(
+                isPauseEnabled = true,
+                labelText = "下次定时喂奶倒计时"
+            )
         }
+        startCountdown()
     }
 
     private fun updateDisplay(remainingMs: Long) {
@@ -433,3 +445,12 @@ data class CountdownUiState(
     val lastFormulaTime: String = "--:--",
     val lastFormulaDetail: String = "暂无记录"
 )
+
+// ─── 事件类型 ─────────────────────────────────────────
+
+sealed class CountdownEvent {
+    /** 触发喂奶提醒弹窗 */
+    data object TriggerAlert : CountdownEvent()
+    /** 关闭弹窗 */
+    data object DismissAlert : CountdownEvent()
+}

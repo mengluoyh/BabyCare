@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/TimerFragment.kt
 package com.babycare.ui
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,17 +14,20 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
  * 计时页面。展示倒计时、喂养统计。
- * 倒计时结束后自动记录配方奶并重启倒计时，无需用户交互。
+ * 倒计时结束后自动记录配方奶、弹窗提醒、循环播报音频。
  */
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: CountdownViewModel by viewModels()
+
+    private var alertDialog: androidx.appcompat.app.AlertDialog? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
@@ -36,6 +40,7 @@ class TimerFragment : Fragment() {
         setupTabs()
         setupUI()
         observeState()
+        observeEvents()
     }
 
     // ═══════════════════ Tab切换 ═══════════════════
@@ -126,7 +131,44 @@ class TimerFragment : Fragment() {
         }
     }
 
+    // ═══════════════════ 事件监听 ═══════════════════
+
+    private fun observeEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collectLatest { event ->
+                    when (event) {
+                        CountdownEvent.TriggerAlert -> showAlertDialog()
+                        CountdownEvent.DismissAlert -> dismissAlert()
+                    }
+                }
+            }
+        }
+    }
+
+    // ═══════════════════ 喂奶提醒弹窗 ═══════════════════
+
+    private fun showAlertDialog() {
+        alertDialog?.dismiss()
+        alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("🍼 喂奶时间到！")
+            .setMessage("喂喂喂！！！宝宝饿啦，人呢人呢，怎么还不给宝宝喂奶喝！！！宝宝要喊了哦！！！")
+            .setCancelable(false)
+            .setPositiveButton("来了来了") { _: DialogInterface?, _: Int ->
+                viewModel.dismissAlert()
+            }
+            .create()
+            .also { it.show() }
+    }
+
+    private fun dismissAlert() {
+        alertDialog?.dismiss()
+        alertDialog = null
+    }
+
     override fun onDestroyView() {
+        alertDialog?.dismiss()
+        alertDialog = null
         _binding = null
         super.onDestroyView()
     }

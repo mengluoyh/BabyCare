@@ -317,6 +317,7 @@
                             android:inputType="text" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- 按钮行 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -335,29 +336,12 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="🔓 解锁最后一条"
+                            android:text="🔓 解锁编辑"
                             android:layout_marginStart="4dp"
                             android:enabled="false"
                             style="@style/Widget.Material3.Button.OutlinedButton" />
                     </LinearLayout>
                 </LinearLayout>
-
-                <!-- 已接种列表 -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="已接种记录"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_surface_variant"
-                    android:layout_marginTop="12dp" />
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/vaccineRecyclerView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
-                    android:layout_marginTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
