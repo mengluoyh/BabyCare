@@ -48,6 +48,14 @@ class BabyGrowthContentFragment : Fragment() {
     companion object {
         private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         private val BIRTH_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        private var savedVaccineName: String? = null
+        private var savedNextVaccineName: String? = null
+        private var savedVaccinationTimeText: String? = null
+        private var savedNextVaccinationText: String? = null
+        private var savedVaccineNote: String? = null
+        private var savedSelectedTime: Long = 0L
+        private var savedSelectedNextTime: Long? = null
+        private var savedVaccineLocked: Boolean = false
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -315,17 +323,6 @@ class BabyGrowthContentFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-        private var savedVaccineName: String? = null
-        private var savedNextVaccineName: String? = null
-        private var savedVaccinationTimeText: String? = null
-        private var savedNextVaccinationText: String? = null
-        private var savedVaccineNote: String? = null
-        private var savedSelectedTime: Long = 0L
-        private var savedSelectedNextTime: Long? = null
-        private var savedVaccineLocked: Boolean = false
     }
 
     // ─── 疫苗列表适配器（ListAdapter + DiffUtil） ───────────
