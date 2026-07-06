@@ -16,6 +16,7 @@ import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
 import com.babycare.util.SyncEngine
+import com.babycare.util.SyncWorker
 import com.babycare.util.WebDavManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,6 +85,26 @@ class SettingsFragment : Fragment() {
         // ─── 增量同步 ───
         binding.btnSyncNow.setOnClickListener { doIncrementalSync() }
         updateLastSyncDisplay()
+
+        // ─── 自动同步 ───
+        loadAutoSyncConfig()
+        binding.swAutoSync.setOnCheckedChangeListener { _, checked ->
+            settings.setAutoSyncEnabled(checked)
+            binding.etAutoSyncInterval.isEnabled = checked
+            if (checked) {
+                val interval = binding.etAutoSyncInterval.text.toString().toIntOrNull() ?: 6
+                settings.setAutoSyncInterval(interval)
+            }
+            SyncWorker.schedule(requireContext())
+        }
+        binding.etAutoSyncInterval.setOnEditorActionListener { _, _, _ ->
+            val interval = binding.etAutoSyncInterval.text.toString().toIntOrNull()
+            if (interval != null && interval in 1..24) {
+                settings.setAutoSyncInterval(interval)
+                if (settings.isAutoSyncEnabled()) SyncWorker.schedule(requireContext())
+            }
+            true
+        }
 
         // ─── 主题 ───
         binding.rgThemeMode.setOnCheckedChangeListener { _, checkedId ->
@@ -274,6 +295,14 @@ class SettingsFragment : Fragment() {
         } else {
             "尚未同步"
         }
+    }
+
+    // ═══════════════════ 自动同步 ═══════════════════
+
+    private fun loadAutoSyncConfig() {
+        binding.swAutoSync.isChecked = settings.isAutoSyncEnabled()
+        binding.etAutoSyncInterval.setText(settings.getAutoSyncInterval().toString())
+        binding.etAutoSyncInterval.isEnabled = settings.isAutoSyncEnabled()
     }
 
     // ═══════════════════ 主题 ═══════════════════

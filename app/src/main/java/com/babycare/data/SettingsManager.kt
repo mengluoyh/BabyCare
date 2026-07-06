@@ -53,4 +53,12 @@ class SettingsManager(context: Context) {
     fun getTimerFinishedHandled(): Boolean = prefs.getBoolean("timer_finished_handled", false)
     fun saveTimerFinishedHandled(handled: Boolean) = prefs.edit().putBoolean("timer_finished_handled", handled).apply()
 
+    // ─── 自动同步开关 ───
+    fun isAutoSyncEnabled(): Boolean = prefs.getBoolean("auto_sync_enabled", false)
+    fun setAutoSyncEnabled(enabled: Boolean) = prefs.edit().putBoolean("auto_sync_enabled", enabled).apply()
+
+    // ─── 自动同步间隔（小时，1~24） ───
+    fun getAutoSyncInterval(): Int = prefs.getInt("auto_sync_interval", 6)
+    fun setAutoSyncInterval(hours: Int) = prefs.edit().putInt("auto_sync_interval", hours.coerceIn(1, 24)).apply()
+
 }

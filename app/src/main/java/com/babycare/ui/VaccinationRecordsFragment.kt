@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.babycare.BabyCareApp
@@ -40,6 +41,7 @@ class VaccinationRecordsFragment : Fragment() {
     private lateinit var nextBtn: MaterialButton
     private lateinit var paginationRow: LinearLayout
     private lateinit var cardContainer: LinearLayout
+    private lateinit var swipeRefresh: SwipeRefreshLayout
     private val dao get() = (requireActivity().application as BabyCareApp).database.vaccineDao()
     private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
@@ -55,14 +57,19 @@ class VaccinationRecordsFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return ScrollView(requireContext()).apply {
-            isFillViewport = true
-            setBackgroundColor(ContextCompat.getColor(context, R.color.background))
+        swipeRefresh = SwipeRefreshLayout(requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            addView(ScrollView(requireContext()).apply {
+                isFillViewport = true
+                setBackgroundColor(ContextCompat.getColor(context, R.color.background))
 
-            contentLayout = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(16, 16, 16, 16)
-            }.also { addView(it) }
+                contentLayout = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(16, 16, 16, 16)
+                }.also { addView(it) }
 
             // 标题
             contentLayout.addView(TextView(context).apply {
@@ -175,9 +182,18 @@ class VaccinationRecordsFragment : Fragment() {
             })
         }
     }
+    return swipeRefresh
+}
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        swipeRefresh.setOnRefreshListener {
+            lifecycleScope.launch {
+                com.babycare.util.SyncEngine.sync(requireContext())
+                loadVaccines()
+                swipeRefresh.isRefreshing = false
+            }
+        }
         loadVaccines()
     }
 
