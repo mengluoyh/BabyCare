@@ -55,6 +55,7 @@ class ExcreteRecordsFragment : Fragment() {
     }
 
     private fun switchFragment(position: Int) {
+        if (!isAdded) return
         val tag = TAGS[position]
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
@@ -66,14 +67,14 @@ class ExcreteRecordsFragment : Fragment() {
             }
             childFragmentManager.beginTransaction()
                 .add(binding.childContainer.id, fragment, tag)
-                .commit()
+                .commitNow()
         }
         val ft = childFragmentManager.beginTransaction()
         for (t in TAGS) {
             childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
         ft.show(fragment)
-        ft.commit()
+        ft.commitNow()
     }
 
     private fun exportRecords() {

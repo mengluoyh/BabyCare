@@ -75,7 +75,7 @@ object ChartDrawer {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * density).toInt()
                 )
-                setBackgroundColor(0x30000000.toInt()) // 半透明黑，深浅色主题均可见
+                setBackgroundColor(android.graphics.Color.argb(48, 0, 0, 0)) // 半透明黑，深浅色主题均可见
             }
             gridContainer.addView(spacer)
             gridContainer.addView(line)

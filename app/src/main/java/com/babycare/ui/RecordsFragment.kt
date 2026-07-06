@@ -40,6 +40,7 @@ class RecordsFragment : Fragment() {
     }
 
     private fun switchFragment(index: Int) {
+        if (!isAdded) return
         val tag = TAGS[index]
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
@@ -51,14 +52,14 @@ class RecordsFragment : Fragment() {
             }
             childFragmentManager.beginTransaction()
                 .add(com.babycare.R.id.child_fragment_container, fragment, tag)
-                .commit()
+                .commitNow()
         }
         val ft = childFragmentManager.beginTransaction()
         for (t in TAGS) {
             childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
         ft.show(fragment)
-        ft.commit()
+        ft.commitNow()
     }
 
     override fun onDestroyView() {

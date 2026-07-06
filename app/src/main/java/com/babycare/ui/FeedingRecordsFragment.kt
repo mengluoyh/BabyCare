@@ -59,6 +59,7 @@ class FeedingRecordsFragment : Fragment() {
     }
 
     private fun switchFragment(position: Int) {
+        if (!isAdded) return
         val tag = TAGS[position]
         var fragment = childFragmentManager.findFragmentByTag(tag)
         if (fragment == null) {
@@ -70,7 +71,7 @@ class FeedingRecordsFragment : Fragment() {
             }
             childFragmentManager.beginTransaction()
                 .add(binding.childContainer.id, fragment, tag)
-                .commit()
+                .commitNow()
         }
         // 隐藏所有，显示目标
         val ft = childFragmentManager.beginTransaction()
@@ -78,7 +79,7 @@ class FeedingRecordsFragment : Fragment() {
             childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
         ft.show(fragment)
-        ft.commit()
+        ft.commitNow()
     }
 
     private fun exportRecords() {
