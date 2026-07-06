@@ -36,9 +36,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Fix ic_launcher reference
-        run: sed -i 's|@mipmap/ic_launcher|@drawable/ic_launcher|g' app/src/main/AndroidManifest.xml
-
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
 
