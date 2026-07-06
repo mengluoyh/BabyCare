@@ -165,7 +165,6 @@ object SyncEngine {
     /** 合并远程增量到本地数据库（LWW） */
     private suspend fun mergeToLocal(context: Context, payload: SyncPayload) {
         val db = BabyCareApp.instance.database
-        val now = System.currentTimeMillis()
 
         // 喂养记录
         for (remote in payload.changes.feedingRecords) {
@@ -174,7 +173,7 @@ object SyncEngine {
                 if (remote.isDeleted) {
                     db.feedingDao().delete(remote)
                 } else {
-                    db.feedingDao().upsert(remote.copy(lastModified = now))
+                    db.feedingDao().upsert(remote)
                 }
             }
         }
@@ -186,7 +185,7 @@ object SyncEngine {
                 if (remote.isDeleted) {
                     db.excreteDao().delete(remote)
                 } else {
-                    db.excreteDao().upsert(remote.copy(lastModified = now))
+                    db.excreteDao().upsert(remote)
                 }
             }
         }
@@ -198,7 +197,7 @@ object SyncEngine {
                 if (remote.isDeleted) {
                     db.vaccineDao().delete(remote)
                 } else {
-                    db.vaccineDao().upsert(remote.copy(lastModified = now))
+                    db.vaccineDao().upsert(remote)
                 }
             }
         }
@@ -210,7 +209,7 @@ object SyncEngine {
                 if (remote.isDeleted) {
                     db.weightDao().delete(remote)
                 } else {
-                    db.weightDao().upsert(remote.copy(lastModified = now))
+                    db.weightDao().upsert(remote)
                 }
             }
         }
@@ -219,7 +218,7 @@ object SyncEngine {
         for (remote in payload.changes.babyProfile) {
             val local = db.babyDao().getProfileSync()
             if (local == null || remote.lastModified > local.lastModified) {
-                db.babyDao().upsertProfile(remote.copy(lastModified = now))
+                db.babyDao().upsertProfile(remote)
             }
         }
     }

@@ -84,8 +84,10 @@ class ExcreteBowelFragment : Fragment() {
             .setTitle("删除确认")
             .setMessage("确定删除此条排便记录？")
             .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
-                lifecycleScope.launch { excreteDao.softDelete(record.id, System.currentTimeMillis()) }
-                Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    excreteDao.softDelete(record.id, System.currentTimeMillis())
+                    Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton("取消", null)
             .show()

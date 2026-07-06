@@ -22,9 +22,13 @@ class BabyCareApp : Application() {
         super.onCreate()
         instance = this
 
-        // 方案1：启动时静默同步
+        // 方案1：启动时静默同步（失败不弹窗，仅日志）
         CoroutineScope(Dispatchers.IO).launch {
-            SyncEngine.sync(this@BabyCareApp)
+            try {
+                SyncEngine.sync(this@BabyCareApp)
+            } catch (e: Exception) {
+                android.util.Log.w("BabyCareApp", "启动同步失败: ${e.message}")
+            }
         }
 
         // 方案2：调度 WorkManager 定时同步（根据设置）

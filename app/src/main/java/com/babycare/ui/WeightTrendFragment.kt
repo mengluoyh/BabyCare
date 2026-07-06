@@ -160,8 +160,8 @@ class WeightTrendFragment : Fragment() {
                 lifecycleScope.launch {
                     weightDao.softDelete(record.id, System.currentTimeMillis())
                     loadRecords()
+                    Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("取消", null)
             .show()
@@ -222,7 +222,7 @@ class WeightTrendFragment : Fragment() {
                 ).also { it.setMargins(16, 3, 16, 3) }
                 textSize = 14f
                 setPadding(12, 10, 12, 10)
-                setBackgroundColor(0x0A000000.toInt())
+                setBackgroundColor(android.graphics.Color.argb(10, 0, 0, 0))
             }
             return VH(tv)
         }
