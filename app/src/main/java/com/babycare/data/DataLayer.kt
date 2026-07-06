@@ -64,7 +64,8 @@ interface FeedingDao {
 
     @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
-@Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyFormulaLast7Days(start: Long, end: Long): List<Int>
 
     @Query("SELECT timestamp FROM feeding_records WHERE feedType = 'breast' ORDER BY timestamp DESC LIMIT 1")
@@ -73,7 +74,6 @@ interface FeedingDao {
     @Query("SELECT timestamp FROM feeding_records WHERE feedType = 'formula' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestFormulaTimestamp(): Long?
 
-    @Insert
     @Query("SELECT COUNT(*) FROM feeding_records WHERE feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyBreastCountLast7Days(start: Long, end: Long): List<Int>
 
