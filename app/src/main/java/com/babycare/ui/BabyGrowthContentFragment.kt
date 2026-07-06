@@ -3,7 +3,6 @@ package com.babycare.ui
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,10 +11,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.babycare.BabyCareApp
 import com.babycare.R
 import com.babycare.data.BabyProfile
@@ -44,7 +39,6 @@ class BabyGrowthContentFragment : Fragment() {
 
     private var selectedVaccinationTime: Long = 0L
     private var selectedNextVaccinationTime: Long? = null
-    private lateinit var vaccineAdapter: VaccineListAdapter
 
     companion object {
         private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -348,51 +342,5 @@ class BabyGrowthContentFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    // ─── 疫苗列表适配器（ListAdapter + DiffUtil） ───────────
-
-    inner class VaccineListAdapter(
-        private val onDelete: (VaccinationRecord) -> Unit
-    ) : ListAdapter<VaccinationRecord, VaccineListAdapter.VH>(DiffCallback()) {
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val tv = android.widget.TextView(parent.context).apply {
-                layoutParams = ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).also { it.setMargins(0, 4, 0, 4) }
-                textSize = 13f
-                setPadding(8, 8, 8, 8)
-                setBackgroundColor(requireContext().getColor(R.color.surface_variant))
-                setTextColor(requireContext().getColor(R.color.on_background))
-            }
-            return VH(tv)
-        }
-
-        override fun onBindViewHolder(holder: VH, position: Int) {
-            val r = getItem(position)
-            val nextStr = r.nextVaccinationTime?.let {
-                val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-                " → 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
-            } ?: ""
-            val noteStr = if (!r.note.isNullOrBlank()) " · ${r.note}" else ""
-            val lockIcon = if (r.isLocked) "🔒" else "🔓"
-            holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr"
-            holder.itemView.setOnLongClickListener {
-                onDelete(r)
-                true
-            }
-        }
-
-        inner class VH(val tv: android.widget.TextView) : RecyclerView.ViewHolder(tv)
-    }
-
-    class DiffCallback : DiffUtil.ItemCallback<VaccinationRecord>() {
-        override fun areItemsTheSame(old: VaccinationRecord, new: VaccinationRecord): Boolean =
-            old.id == new.id
-
-        override fun areContentsTheSame(old: VaccinationRecord, new: VaccinationRecord): Boolean =
-            old == new
     }
 }

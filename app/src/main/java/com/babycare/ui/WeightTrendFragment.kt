@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.babycare.BabyCareApp
 import com.babycare.data.WeightRecord
 import com.babycare.util.Constants
@@ -222,18 +223,17 @@ class WeightTrendFragment : Fragment() {
                 textSize = 14f
                 setPadding(12, 10, 12, 10)
                 setBackgroundColor(0x0A000000.toInt())
-                setOnLongClickListener {
-                    val pos = getTag() as? Int ?: return@setOnLongClickListener true
-                    if (pos < itemCount) onDelete(getItem(pos))
-                    true
-                }
             }
             return VH(tv)
         }
         override fun onBindViewHolder(holder: VH, position: Int) {
             val r = getItem(position)
             holder.tv.text = "${DATE_FMT.format(Date(r.timestamp))}    ⚖️ ${r.weight} kg"
-            holder.tv.setTag(position)
+            holder.tv.setOnLongClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) onDelete(getItem(pos))
+                true
+            }
         }
         inner class VH(val tv: android.widget.TextView) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(tv)

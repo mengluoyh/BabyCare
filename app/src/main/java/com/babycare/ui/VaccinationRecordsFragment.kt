@@ -39,6 +39,7 @@ class VaccinationRecordsFragment : Fragment() {
     private lateinit var prevBtn: MaterialButton
     private lateinit var nextBtn: MaterialButton
     private lateinit var paginationRow: LinearLayout
+    private lateinit var cardContainer: LinearLayout
     private val dao get() = (requireActivity().application as BabyCareApp).database.vaccineDao()
     private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
@@ -83,15 +84,25 @@ class VaccinationRecordsFragment : Fragment() {
                 visibility = View.GONE
             }.also { contentLayout.addView(it) }
 
+            // 添加按钮
+            contentLayout.addView(MaterialButton(context).apply {
+                text = "➕ 添加疫苗记录"
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).also { it.setMargins(0, 12, 0, 0) }
+                setOnClickListener { showVaccineDialog(null) }
+            })
+
             // 记录卡片容器
-            contentLayout.addView(LinearLayout(context).apply {
+            cardContainer = LinearLayout(context).apply {
                 id = View.generateViewId()
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 ).also { it.topMargin = 12 }
-            })
+            }.also { contentLayout.addView(it) }
 
             // 分页控件
             paginationRow = LinearLayout(context).apply {
@@ -194,8 +205,7 @@ class VaccinationRecordsFragment : Fragment() {
         val end = (start + pageSize).coerceAtMost(vaccineRecords.size)
         val pageRecords = if (vaccineRecords.isEmpty()) emptyList() else vaccineRecords.subList(start, end)
 
-        // 更新卡片（contentLayout第3个子视图 = 卡片容器，索引2）
-        val cardContainer = (contentLayout.getChildAt(2) as LinearLayout)
+        // 更新卡片
         cardContainer.removeAllViews()
         for (r in pageRecords) {
             cardContainer.addView(buildRecordCard(r))

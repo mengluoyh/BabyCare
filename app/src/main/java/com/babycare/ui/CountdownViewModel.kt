@@ -323,22 +323,31 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ═══════════════════ 音频播报 ═══════════════════
 
-    /** 循环播报音频（isLooping=true 持续播放直到外部停止） */
+    /** 循环播报音频（按设置次数重复播放） */
     private fun playAlertAudioLoop() {
         val audioPath = settings.getAudioFilePath()
         if (audioPath.isEmpty()) return
+        val repeatCount = settings.getAudioRepeatCount() // 获取播报次数
         stopAudio()
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(audioPath)
-                audioPlayer = MediaPlayer().apply {
-                    setDataSource(getApplication<Application>(), uri)
-                    isLooping = true
-                    prepare()
-                    start()
+                for (i in 1..repeatCount) {
+                    if (audioPlayer == null) break // 被外部停止
+                    val player = MediaPlayer().apply {
+                        setDataSource(getApplication<Application>(), uri)
+                        prepare()
+                        start()
+                    }
+                    audioPlayer = player
+                    // 等待播放完成
+                    val duration = player.duration.toLong()
+                    delay(if (duration > 0) duration else 3000)
+                    player.release()
                 }
+                audioPlayer = null
             } catch (_: Exception) {
-                // 音频播放失败不影响倒计时
+                audioPlayer = null
             }
         }
     }

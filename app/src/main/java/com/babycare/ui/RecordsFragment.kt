@@ -14,7 +14,6 @@ class RecordsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val TAGS = arrayOf("feeding", "excrete", "custom")
-    private val fragments = listOf(FeedingRecordsFragment(), ExcreteRecordsFragment(), CustomRecordFragment())
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentRecordsBinding.inflate(inflater, container, false)
@@ -41,17 +40,24 @@ class RecordsFragment : Fragment() {
     }
 
     private fun switchFragment(index: Int) {
-        val fragment = fragments[index]
         val tag = TAGS[index]
+        var fragment = childFragmentManager.findFragmentByTag(tag)
+        if (fragment == null) {
+            fragment = when (index) {
+                0 -> FeedingRecordsFragment()
+                1 -> ExcreteRecordsFragment()
+                2 -> CustomRecordFragment()
+                else -> FeedingRecordsFragment()
+            }
+            childFragmentManager.beginTransaction()
+                .add(com.babycare.R.id.child_fragment_container, fragment, tag)
+                .commit()
+        }
         val ft = childFragmentManager.beginTransaction()
         for (t in TAGS) {
             childFragmentManager.findFragmentByTag(t)?.let { ft.hide(it) }
         }
-        if (childFragmentManager.findFragmentByTag(tag) == null) {
-            ft.add(com.babycare.R.id.child_fragment_container, fragment, tag)
-        } else {
-            ft.show(fragment)
-        }
+        ft.show(fragment)
         ft.commit()
     }
 
