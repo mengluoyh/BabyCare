@@ -78,6 +78,18 @@ class SettingsFragment : Fragment() {
             })
             requireActivity().recreate()
         }
+
+        // ─── 音频播报次数 ───
+        binding.etAudioRepeatCount.setText(settings.getAudioRepeatCount().toString())
+        binding.btnSaveAudioRepeat.setOnClickListener {
+            val count = binding.etAudioRepeatCount.text.toString().toIntOrNull()
+            if (count != null && count in 1..10) {
+                settings.saveAudioRepeatCount(count)
+                Toast.makeText(requireContext(), "音频播报次数已保存: $count 次", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "请输入1~10之间的数字", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun doLocalBackup() {

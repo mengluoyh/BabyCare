@@ -75,7 +75,6 @@ class TimerFragment : Fragment() {
     private fun setupUI() {
         val savedInterval = viewModel.uiState.value.intervalMinutes
         if (savedInterval > 0) binding.etInterval.setText(savedInterval.toString())
-        else binding.etInterval.text?.clear()
 
         binding.btnSetInterval.setOnClickListener {
             val mins = binding.etInterval.text.toString().toIntOrNull()

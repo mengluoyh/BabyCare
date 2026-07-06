@@ -41,4 +41,8 @@ class SettingsManager(context: Context) {
     fun getAlertPending(): Boolean = prefs.getBoolean("alert_pending", false)
     fun saveAlertPending(pending: Boolean) = prefs.edit().putBoolean("alert_pending", pending).apply()
 
+    // ─── 音频播报次数 ───
+    fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 1)
+    fun saveAudioRepeatCount(count: Int) = prefs.edit().putInt("audio_repeat_count", count.coerceIn(1, 10)).apply()
+
 }

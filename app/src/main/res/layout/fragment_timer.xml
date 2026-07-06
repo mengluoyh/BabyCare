@@ -78,11 +78,12 @@
                         android:layout_marginTop="8dp">
                         <EditText
                             android:id="@+id/etInterval"
-                            android:layout_width="0dp"
+                            android:layout_width="100dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:inputType="number"
-                            android:hint="输入分钟数" />
+                            android:hint="分钟"
+                            android:gravity="center"
+                            android:textSize="16sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
