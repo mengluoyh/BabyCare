@@ -17,15 +17,6 @@ import java.util.*
  */
 object BackupManager {
 
-    data class BackupData(
-        val feedingRecords: List<FeedingRecord> = emptyList(),
-        val excreteRecords: List<ExcreteRecord> = emptyList(),
-        val babyProfile: BabyProfile? = null,
-        val weightRecords: List<WeightRecord> = emptyList(),
-        val vaccinationRecords: List<VaccinationRecord> = emptyList(),
-        val backupTime: Long = System.currentTimeMillis()
-    )
-
     /** 执行完整备份（仅本地） */
     suspend fun backupAll(context: Context): Result<String> = withContext(Dispatchers.IO) {
         try {

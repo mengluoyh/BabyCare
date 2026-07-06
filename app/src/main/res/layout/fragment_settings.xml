@@ -498,7 +498,7 @@
                     android:textSize="12sp"
                     android:gravity="center"
                     android:textColor="@color/on_surface_variant" />
-    </LinearLayout>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>

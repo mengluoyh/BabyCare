@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.babycare.R
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
@@ -163,7 +162,7 @@ class SettingsFragment : Fragment() {
                     binding.tvSyncStatus.text = "❌ 文件为空或无法读取"
                     return@launch
                 }
-                val data = com.google.gson.Gson().fromJson(json, BackupManager.BackupData::class.java)
+                val data = com.google.gson.Gson().fromJson(json, com.babycare.data.BackupData::class.java)
                 val app = com.babycare.BabyCareApp.instance
                 val db = app.database
                 if (data.feedingRecords.isNotEmpty()) db.feedingDao().insertAll(data.feedingRecords)

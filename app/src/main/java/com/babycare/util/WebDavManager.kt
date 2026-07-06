@@ -18,15 +18,6 @@ import java.util.*
  */
 object WebDavManager {
 
-    data class BackupData(
-        val feedingRecords: List<FeedingRecord> = emptyList(),
-        val excreteRecords: List<ExcreteRecord> = emptyList(),
-        val babyProfile: BabyProfile? = null,
-        val weightRecords: List<WeightRecord> = emptyList(),
-        val vaccinationRecords: List<VaccinationRecord> = emptyList(),
-        val backupTime: Long = System.currentTimeMillis()
-    )
-
     private const val TIMEOUT = 15000
     private const val INDEX_FILE = "babycare_index.json"
 
