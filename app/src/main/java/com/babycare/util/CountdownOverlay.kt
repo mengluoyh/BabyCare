@@ -72,6 +72,9 @@ object CountdownOverlay {
         }
     }
 
+    /** 检查悬浮窗是否正在显示 */
+    fun isShowing(): Boolean = overlayView != null
+
     /** 更新悬浮窗文本 */
     fun update(text: String) {
         overlayView?.text = text

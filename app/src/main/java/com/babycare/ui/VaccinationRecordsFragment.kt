@@ -119,7 +119,8 @@ class VaccinationRecordsFragment : Fragment() {
 
             records.forEachIndexed { i, r ->
                 val lockIcon = if (r.isLocked) "🔒" else "🔓"
-                val nextStr = r.nextVaccinationTime?.let { " → 下次接种: ${sdf.format(Date(it))}" } ?: ""
+                val nextNameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
+                val nextStr = r.nextVaccinationTime?.let { " → 下次${nextNameStr}: ${sdf.format(Date(it))}" } ?: ""
                 val noteStr = if (!r.note.isNullOrBlank()) "\n   备注: ${r.note}" else ""
                 sb.appendLine("${i + 1}. $lockIcon ${r.vaccineName}")
                 sb.appendLine("   接种时间: ${sdf.format(Date(r.vaccinationTime))}$nextStr$noteStr")
@@ -167,7 +168,10 @@ class VaccineListViewAdapter : androidx.recyclerview.widget.RecyclerView.Adapter
     override fun onBindViewHolder(holder: VH, position: Int) {
         val r = records[position]
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        val nextStr = r.nextVaccinationTime?.let { " → 下次: ${sdf.format(Date(it))}" } ?: ""
+        val nextStr = r.nextVaccinationTime?.let {
+            val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
+            " → 下次${nameStr}: ${sdf.format(Date(it))}"
+        } ?: ""
         val noteStr = if (!r.note.isNullOrBlank()) "\n📝 ${r.note}" else ""
         val lockIcon = if (r.isLocked) "🔒" else "🔓"
         holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${sdf.format(Date(r.vaccinationTime))}$nextStr$noteStr"

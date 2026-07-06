@@ -1,9 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/TimerFragment.kt
 package com.babycare.ui
 
-import android.content.Context
 import android.content.DialogInterface
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,17 +17,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
-import com.babycare.util.AudioPlayer
 import com.babycare.util.CountdownOverlay
 import com.google.android.material.tabs.TabLayout
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * 计时页面。UI 层：展示倒计时、悬浮窗、处理提醒弹窗/音频/震动。
- * 所有业务逻辑委托给 [CountdownViewModel]。
+ * 计时页面。UI 层：展示倒计时、悬浮窗、弹窗提醒。
+ * 音频和震动由 [com.babycare.service.AlertService] 处理。
  */
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
@@ -37,13 +32,9 @@ class TimerFragment : Fragment() {
 
     private val viewModel: CountdownViewModel by viewModels()
 
-    private var mediaPlayer: android.media.MediaPlayer? = null
     private var alertDialog: androidx.appcompat.app.AlertDialog? = null
     private val handler = Handler(Looper.getMainLooper())
     private val settings by lazy { com.babycare.data.SettingsManager(requireContext()) }
-
-    // 周期性震动（每1分钟一次，30秒后开始）
-    private var vibrationJob: kotlinx.coroutines.Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
@@ -217,35 +208,15 @@ class TimerFragment : Fragment() {
 
     private fun dismissAlert() {
         handler.removeCallbacksAndMessages(null)
-        vibrationJob?.cancel()
-        vibrationJob = null
         alertDialog?.dismiss()
         alertDialog = null
-        stopAudio()
-        try {
-            val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            vibrator.cancel()
-        } catch (e: Exception) {
-            android.util.Log.w("TimerFragment", "取消震动失败", e)
-        }
         binding.audioControlBar.visibility = View.GONE
         // 清除提醒标记
         settings.saveAlertPending(false)
     }
 
-    private fun stopAudio() {
-        try { mediaPlayer?.stop() } catch (e: Exception) {
-            android.util.Log.w("TimerFragment", "停止音频失败", e)
-        }
-        mediaPlayer?.release()
-        mediaPlayer = null
-    }
-
     override fun onDestroyView() {
         handler.removeCallbacksAndMessages(null)
-        vibrationJob?.cancel()
-        vibrationJob = null
-        stopAudio()
         alertDialog?.dismiss()
         alertDialog = null
         _binding = null

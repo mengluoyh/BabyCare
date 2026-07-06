@@ -200,6 +200,9 @@ class BabyGrowthContentFragment : Fragment() {
 
     // ═══════════════════ 疫苗接种管理 ═══════════════════
 
+    /** 是否正在编辑已有记录（解锁后编辑模式） */
+    private var editingVaccineRecord: VaccinationRecord? = null
+
     private fun setupVaccineUI() {
         vaccineAdapter = VaccineListAdapter { record -> deleteVaccine(record) }
         binding.vaccineRecyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -240,16 +243,22 @@ class BabyGrowthContentFragment : Fragment() {
         }
 
         lifecycleScope.launch {
+            // 如果正在编辑已有记录，保留其 id 实现覆盖更新
+            val existingId = editingVaccineRecord?.id ?: 0
             val record = VaccinationRecord(
+                id = existingId,
                 vaccineName = name,
                 vaccinationTime = selectedVaccinationTime,
                 nextVaccinationTime = selectedNextVaccinationTime,
+                nextVaccineName = binding.etNextVaccineName.text.toString().trim().takeIf { it.isNotEmpty() },
                 isLocked = true,
                 note = binding.etVaccineNote.text.toString().trim().takeIf { it.isNotEmpty() }
             )
             vaccineDao.upsert(record)
-            Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存并锁定", Toast.LENGTH_SHORT).show()
             clearVaccineInput()
+            disableVaccineInput()
+            editingVaccineRecord = null
             loadVaccines()
         }
     }
@@ -261,12 +270,44 @@ class BabyGrowthContentFragment : Fragment() {
             if (lastLocked != null) {
                 val unlocked = lastLocked.copy(isLocked = false)
                 vaccineDao.upsert(unlocked)
-                Toast.makeText(requireContext(), "🔓 已解锁「${lastLocked.vaccineName}」", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "🔓 已解锁「${lastLocked.vaccineName}」，可修改", Toast.LENGTH_SHORT).show()
+                // 预填数据到输入框
+                editingVaccineRecord = unlocked
+                binding.etVaccineName.setText(unlocked.vaccineName)
+                if (unlocked.vaccinationTime > 0) {
+                    selectedVaccinationTime = unlocked.vaccinationTime
+                    binding.etVaccinationTime.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(unlocked.vaccinationTime)))
+                }
+                if (unlocked.nextVaccinationTime != null && unlocked.nextVaccinationTime!! > 0) {
+                    selectedNextVaccinationTime = unlocked.nextVaccinationTime
+                    binding.etNextVaccination.setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(unlocked.nextVaccinationTime!!)))
+                }
+                binding.etNextVaccineName.setText(unlocked.nextVaccineName ?: "")
+                binding.etVaccineNote.setText(unlocked.note ?: "")
+                enableVaccineInput()
                 loadVaccines()
             } else {
                 Toast.makeText(requireContext(), "没有已锁定的记录可解锁", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun disableVaccineInput() {
+        binding.etVaccineName.isEnabled = false
+        binding.etVaccinationTime.isEnabled = false
+        binding.etNextVaccination.isEnabled = false
+        binding.etNextVaccineName.isEnabled = false
+        binding.etVaccineNote.isEnabled = false
+        binding.btnSaveVaccine.isEnabled = false
+    }
+
+    private fun enableVaccineInput() {
+        binding.etVaccineName.isEnabled = true
+        binding.etVaccinationTime.isEnabled = true
+        binding.etNextVaccination.isEnabled = true
+        binding.etNextVaccineName.isEnabled = true
+        binding.etVaccineNote.isEnabled = true
+        binding.btnSaveVaccine.isEnabled = true
     }
 
     private fun deleteVaccine(record: VaccinationRecord) {
@@ -276,6 +317,12 @@ class BabyGrowthContentFragment : Fragment() {
             .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch {
                     vaccineDao.delete(record)
+                    // 如果删除的是正在编辑的记录，清空输入
+                    if (editingVaccineRecord?.id == record.id) {
+                        editingVaccineRecord = null
+                        clearVaccineInput()
+                        disableVaccineInput()
+                    }
                     loadVaccines()
                 }
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
@@ -298,6 +345,7 @@ class BabyGrowthContentFragment : Fragment() {
         binding.etVaccineName.text?.clear()
         binding.etVaccinationTime.text?.clear()
         binding.etNextVaccination.text?.clear()
+        binding.etNextVaccineName.text?.clear()
         binding.etVaccineNote.text?.clear()
         selectedVaccinationTime = 0L
         selectedNextVaccinationTime = null
@@ -338,7 +386,10 @@ class BabyGrowthContentFragment : Fragment() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val r = records[position]
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            val nextStr = r.nextVaccinationTime?.let { " → 下次: ${sdf.format(Date(it))}" } ?: ""
+            val nextStr = r.nextVaccinationTime?.let { 
+                val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
+                " → 下次${nameStr}: ${sdf.format(Date(it))}" 
+            } ?: ""
             val noteStr = if (!r.note.isNullOrBlank()) " · ${r.note}" else ""
             val lockIcon = if (r.isLocked) "🔒" else "🔓"
             holder.tv.text = "$lockIcon ${r.vaccineName}\n接种: ${sdf.format(Date(r.vaccinationTime))}$nextStr$noteStr"

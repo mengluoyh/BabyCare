@@ -281,9 +281,14 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                 if (ms <= 0) break
                 updateDisplay(ms)
                 updateEstimatedTime(ms)
-                // 直接更新悬浮窗（不受 Fragment 生命周期限制，后台也能同步）
+                // 直接更新悬浮窗（不受 Fragment 生命周期限制，后台/其他页面也能同步）
                 if (settings.getOverlayEnabled()) {
-                    CountdownOverlay.update("⏰ ${formatTime(ms)}")
+                    val displayText = "⏰ ${formatTime(ms)}"
+                    CountdownOverlay.update(displayText)
+                    // 如果悬浮窗被意外移除则重新创建
+                    if (!CountdownOverlay.isShowing()) {
+                        CountdownOverlay.show(getApplication(), displayText)
+                    }
                 }
             }
             if (ms <= 0) onTimerFinished()

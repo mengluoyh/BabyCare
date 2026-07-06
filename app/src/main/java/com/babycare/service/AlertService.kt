@@ -143,7 +143,7 @@ class AlertService : Service() {
         // 阶段1：持续震动 vibrateDuration 毫秒
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val effect = VibrationEffect.createWaveform(longArrayOf(vibrateDuration), -1)
+                val effect = VibrationEffect.createOneShot(vibrateDuration, VibrationEffect.DEFAULT_AMPLITUDE)
                 vibrator?.vibrate(effect)
             } else {
                 @Suppress("DEPRECATION")
@@ -165,11 +165,11 @@ class AlertService : Service() {
             override fun run() {
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val effect = VibrationEffect.createWaveform(longArrayOf(500, 200, 500), -1)
+                        val effect = VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE)
                         vibrator?.vibrate(effect)
                     } else {
                         @Suppress("DEPRECATION")
-                        vibrator?.vibrate(longArrayOf(0, 500, 200, 500), -1)
+                        vibrator?.vibrate(longArrayOf(0, 500), -1)
                     }
                 } catch (e: Exception) {
                     android.util.Log.w("AlertService", "周期震动失败", e)
