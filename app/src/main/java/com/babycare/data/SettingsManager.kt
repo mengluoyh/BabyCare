@@ -45,4 +45,8 @@ class SettingsManager(context: Context) {
     fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 1)
     fun saveAudioRepeatCount(count: Int) = prefs.edit().putInt("audio_repeat_count", count.coerceIn(1, 10)).apply()
 
+    // ─── 音频文件路径（SAF URI） ───
+    fun getAudioFilePath(): String = prefs.getString("audio_file_path", "") ?: ""
+    fun saveAudioFilePath(path: String) = prefs.edit().putString("audio_file_path", path).apply()
+
 }

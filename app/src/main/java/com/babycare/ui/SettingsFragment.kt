@@ -1,6 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/SettingsFragment.kt
 package com.babycare.ui
 
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,7 +16,9 @@ import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
 import com.babycare.util.WebDavManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -25,6 +28,18 @@ class SettingsFragment : Fragment() {
     // 文件选择器：让用户从任意文件夹选择 .json 备份文件
     private val backupFilePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) restoreFromUri(uri)
+    }
+
+    // 音频文件选择器：从文件夹选择播报音频
+    private val audioFilePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                requireContext().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) { }
+            settings.saveAudioFilePath(uri.toString())
+            updateAudioFileDisplay()
+            Toast.makeText(requireContext(), "✅ 播报音频已选择", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -90,6 +105,13 @@ class SettingsFragment : Fragment() {
                 Toast.makeText(requireContext(), "请输入1~10之间的数字", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // ─── 音频文件选择 ───
+        updateAudioFileDisplay()
+        binding.btnSelectAudio.setOnClickListener {
+            audioFilePicker.launch(arrayOf("audio/*", "*/*"))
+        }
+        binding.btnTestAudio.setOnClickListener { testAudioPlay() }
     }
 
     private fun doLocalBackup() {
@@ -226,6 +248,57 @@ class SettingsFragment : Fragment() {
             "light" -> binding.rbThemeLight.isChecked = true
             "dark" -> binding.rbThemeDark.isChecked = true
             else -> binding.rbThemeSystem.isChecked = true
+        }
+    }
+
+    // ═══════════════════ 音频文件 ═══════════════════
+
+    /** 更新音频文件名显示 */
+    private fun updateAudioFileDisplay() {
+        val path = settings.getAudioFilePath()
+        if (path.isEmpty()) {
+            binding.tvAudioFileName.text = "未选择"
+            return
+        }
+        try {
+            val uri = Uri.parse(path)
+            val cursor = requireContext().contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIdx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIdx >= 0) {
+                        binding.tvAudioFileName.text = it.getString(nameIdx)
+                        return
+                    }
+                }
+            }
+        } catch (_: Exception) { }
+        binding.tvAudioFileName.text = "已选择音频"
+    }
+
+    /** 试听当前选择的音频 */
+    private fun testAudioPlay() {
+        val path = settings.getAudioFilePath()
+        if (path.isEmpty()) {
+            Toast.makeText(requireContext(), "请先选择音频文件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(requireContext(), "▶️ 试听中...", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                var player: MediaPlayer? = null
+                try {
+                    val uri = Uri.parse(path)
+                    player = MediaPlayer().apply {
+                        setDataSource(requireContext(), uri)
+                        prepare()
+                        start()
+                    }
+                    // 播放3秒后停止（试听）
+                    kotlinx.coroutines.delay(3000)
+                } catch (_: Exception) { }
+                finally { player?.release() }
+            }
         }
     }
 

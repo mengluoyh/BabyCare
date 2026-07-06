@@ -1,10 +1,7 @@
 // BabyCare/app/src/main/java/com/babycare/ui/TimerFragment.kt
 package com.babycare.ui
 
-import android.content.DialogInterface
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,22 +13,17 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.google.android.material.tabs.TabLayout
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * 计时页面。UI 层：展示倒计时、弹窗提醒。
- * 提醒通知由 [com.babycare.service.AlertService] 处理。
+ * 计时页面。展示倒计时、喂养统计。
+ * 倒计时结束后自动记录配方奶并重启倒计时，无需用户交互。
  */
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: CountdownViewModel by viewModels()
-
-    private var alertDialog: androidx.appcompat.app.AlertDialog? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private val settings by lazy { com.babycare.data.SettingsManager(requireContext()) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTimerBinding.inflate(inflater, container, false)
@@ -44,12 +36,6 @@ class TimerFragment : Fragment() {
         setupTabs()
         setupUI()
         observeState()
-        observeEvents()
-
-        // 检查是否有待处理的喂奶提醒（后台倒计时结束时设置的标记）
-        if (settings.getAlertPending()) {
-            showAlertDialog()
-        }
     }
 
     // ═══════════════════ Tab切换 ═══════════════════
@@ -140,48 +126,7 @@ class TimerFragment : Fragment() {
         }
     }
 
-    private fun observeEvents() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.events.collectLatest { event ->
-                    when (event) {
-                        CountdownEvent.TriggerAlert -> showAlertDialog()
-                        CountdownEvent.DismissAlert -> dismissAlert()
-                    }
-                }
-            }
-        }
-    }
-
-    // ═══════════════════ 提醒（仅弹窗，无音频/震动） ═══════════════════
-
-    /** 显示「我知道了」弹窗 */
-    private fun showAlertDialog() {
-        // 弹窗：用户点击「我知道了」才续时+记录
-        alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("🍼 喂奶时间到！")
-            .setMessage("宝宝该喂奶了")
-            .setCancelable(false)
-            .setPositiveButton("我知道了") { _: DialogInterface?, _: Int ->
-                viewModel.confirmTimerFinished()
-                dismissAlert()
-            }
-            .create()
-            .also { it.show() }
-    }
-
-    private fun dismissAlert() {
-        handler.removeCallbacksAndMessages(null)
-        alertDialog?.dismiss()
-        alertDialog = null
-        // 清除提醒标记
-        settings.saveAlertPending(false)
-    }
-
     override fun onDestroyView() {
-        handler.removeCallbacksAndMessages(null)
-        alertDialog?.dismiss()
-        alertDialog = null
         _binding = null
         super.onDestroyView()
     }
