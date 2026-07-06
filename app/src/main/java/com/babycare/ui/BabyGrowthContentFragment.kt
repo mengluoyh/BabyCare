@@ -332,7 +332,7 @@ class BabyGrowthContentFragment : Fragment() {
     private fun loadVaccines() {
         lifecycleScope.launch {
             val records = vaccineDao.getAllSnapshot()
-            vaccineAdapter.submitList(records)
+            vaccineAdapter.submitList(records.toMutableList() as MutableList<VaccinationRecord?>)
             binding.btnUnlockVaccine.isEnabled = records.any { it.isLocked }
         }
     }
@@ -357,10 +357,6 @@ class BabyGrowthContentFragment : Fragment() {
     inner class VaccineListAdapter(
         private val onDelete: (VaccinationRecord) -> Unit
     ) : ListAdapter<VaccinationRecord, VaccineListAdapter.VH>(DiffCallback()) {
-
-        fun submitList(list: List<VaccinationRecord>) {
-            (this as ListAdapter<VaccinationRecord, VH>).submitList(list)
-        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val tv = android.widget.TextView(parent.context).apply {
