@@ -240,6 +240,8 @@ class SettingsFragment : Fragment() {
         } else {
             binding.tvCurrentRingtone.text = "默认铃声"
         }
+        // 音频播报重复次数
+        binding.etAudioRepeatCount.setText(settings.getAudioRepeatCount().toString())
         // 震动参数
         binding.etVibrateDuration.setText(settings.getVibrateDuration().toString())
         binding.etVibrateInterval.setText(settings.getVibrateInterval().toString())
@@ -279,7 +281,7 @@ class SettingsFragment : Fragment() {
         binding.tvNotifyStatus.text = "✅ 已恢复默认铃声"
     }
 
-    /** 保存震动设置 */
+    /** 保存震动与音频设置 */
     private fun saveVibrateSettings() {
         val durText = binding.etVibrateDuration.text.toString()
         val intText = binding.etVibrateInterval.text.toString()
@@ -296,7 +298,20 @@ class SettingsFragment : Fragment() {
         if (interval == 0L) interval = 1L
         settings.saveVibrateDuration(dur)
         settings.saveVibrateInterval(interval)
-        binding.tvNotifyStatus.text = "✅ 震动设置已保存（震动${dur}ms, 间隔${interval}ms）"
+
+        // 音频播报重复次数
+        val repeatText = binding.etAudioRepeatCount.text.toString()
+        if (repeatText.isNotBlank()) {
+            val count = repeatText.toIntOrNull()
+            if (count != null && count > 0) {
+                settings.saveAudioRepeatCount(count)
+            } else {
+                binding.etAudioRepeatCount.error = "请输入大于0的数字"
+                return
+            }
+        }
+
+        binding.tvNotifyStatus.text = "✅ 设置已保存（震动${dur}ms, 间隔${interval}ms, 重复${settings.getAudioRepeatCount()}次）"
     }
 
     override fun onDestroyView() {

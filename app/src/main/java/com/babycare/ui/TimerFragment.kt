@@ -82,7 +82,9 @@ class TimerFragment : Fragment() {
     // ═══════════════════ UI 绑定 ═══════════════════
 
     private fun setupUI() {
-        binding.etInterval.setText(viewModel.uiState.value.intervalMinutes.toString())
+        val savedInterval = viewModel.uiState.value.intervalMinutes
+        if (savedInterval > 0) binding.etInterval.setText(savedInterval.toString())
+        else binding.etInterval.text?.clear()
 
         binding.btnSetInterval.setOnClickListener {
             val mins = binding.etInterval.text.toString().toIntOrNull()
@@ -199,10 +201,12 @@ class TimerFragment : Fragment() {
             startPeriodicVibration(vibrateInterval)
         }, vibrateDuration)
 
-        // 播放音频（最多60秒）
+        // 播放音频（重复指定次数后自动停止）
         val audioPath = settings.getCustomAudioPath()
-        mediaPlayer = AudioPlayer.playLooping(requireContext(), audioPath, 60_000L, handler) {
-            dismissAlert()
+        val repeatCount = settings.getAudioRepeatCount()
+        mediaPlayer = AudioPlayer.playWithRepeatCount(requireContext(), audioPath, repeatCount) {
+            // 播放完毕自动停止音频，不关闭弹窗
+            handler.post { binding.audioControlBar.visibility = View.GONE }
         }
         binding.audioControlBar.visibility = View.VISIBLE
 

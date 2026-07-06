@@ -8,8 +8,8 @@ class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("babycare_prefs", Context.MODE_PRIVATE)
 
-    // 定时喂奶间隔（分钟）
-    fun getInterval(): Int = prefs.getInt("interval_minutes", 180)
+    // 定时喂奶间隔（分钟），默认0表示未设置
+    fun getInterval(): Int = prefs.getInt("interval_minutes", 0)
     fun saveInterval(minutes: Int) = prefs.edit().putInt("interval_minutes", minutes).apply()
 
     fun getNextFeedTime(): Long = prefs.getLong("next_feed_time", 0L)
@@ -47,5 +47,10 @@ class SettingsManager(context: Context) {
     /** 震动间隔（毫秒），震动结束后过多久再次震动，默认 60000（1分钟） */
     fun getVibrateInterval(): Long = prefs.getLong("vibrate_interval", 60000L)
     fun saveVibrateInterval(ms: Long) = prefs.edit().putLong("vibrate_interval", ms).apply()
+
+    // ─── 音频播报重复次数 ───
+    /** 音频播报重复播放次数，默认3次 */
+    fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 3)
+    fun saveAudioRepeatCount(count: Int) = prefs.edit().putInt("audio_repeat_count", count).apply()
 
 }

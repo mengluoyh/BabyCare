@@ -396,7 +396,7 @@ data class CountdownUiState(
     val labelText: String = "已清零，请重新设置间隔",
     val isPaused: Boolean = false,
     val isPauseEnabled: Boolean = false,
-    val intervalMinutes: Int = 180,
+    val intervalMinutes: Int = 0,
     val todayBreastCount: Int = 0,
     val todayFormulaAmount: Int = 0,
     val todayFormulaCount: Int = 0,
