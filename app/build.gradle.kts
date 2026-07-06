@@ -50,3 +50,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.0")
     implementation("com.google.code.gson:gson:2.10.1")
 }
+
+kapt {
+    correctErrorTypes = true
+    useBuildCache = false
+    includeCompileClasspath = false
+}

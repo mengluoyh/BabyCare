@@ -36,8 +36,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Clean kapt & build caches
+        run: |
+          rm -rf ~/.gradle/caches/kapt-* ~/.gradle/caches/kotlin-gradle-plugin-*
+          ./gradlew clean --no-daemon
+
       - name: Build Debug APK
-        run: ./gradlew clean assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v5
