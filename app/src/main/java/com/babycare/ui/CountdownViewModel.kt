@@ -9,10 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.data.SettingsManager
-import com.babycare.service.AlarmScheduler
 import com.babycare.service.AlertService
 import com.babycare.util.AgeCalculator
-import com.babycare.util.CountdownOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +33,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private val settings = SettingsManager(application)
     private val feedingDao = app.database.feedingDao()
     private val babyDao = app.database.babyDao()
-    private val alarmScheduler = AlarmScheduler(application)
 
     // ─── UI State ──────────────────────────────────
     private val _uiState = MutableStateFlow(CountdownUiState())
@@ -72,7 +69,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         cancelTimer()
         nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
         settings.saveNextFeedTime(nextFeedTime)
-        alarmScheduler.scheduleAlarm(nextFeedTime)
         isPaused = false
         settings.savePausedState(false)
         updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
@@ -98,7 +94,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             cancelTimer()
             nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
             settings.saveNextFeedTime(nextFeedTime)
-            alarmScheduler.scheduleAlarm(nextFeedTime)
             updateState { copy(isPauseEnabled = true, labelText = "下次定时喂奶倒计时") }
             startCountdown()
         }
@@ -111,7 +106,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         settings.savePausedState(true)
         settings.savePauseRemaining(remainingOnPause)
         cancelTimer()
-        alarmScheduler.cancelAlarm()
         updateState {
             copy(
                 isPaused = true,
@@ -126,7 +120,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         remainingOnPause = settings.getPauseRemaining()
         nextFeedTime = System.currentTimeMillis() + remainingOnPause
         settings.saveNextFeedTime(nextFeedTime)
-        alarmScheduler.scheduleAlarm(nextFeedTime)
         isPaused = false
         settings.savePausedState(false)
         updateState { copy(isPaused = false, labelText = "下次定时喂奶倒计时") }
@@ -137,7 +130,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         cancelTimer()
         nextFeedTime = 0
         settings.saveNextFeedTime(0)
-        alarmScheduler.cancelAlarm()
         isPaused = false
         settings.savePausedState(false)
         updateState {
@@ -281,28 +273,17 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                 if (ms <= 0) break
                 updateDisplay(ms)
                 updateEstimatedTime(ms)
-                // 直接更新悬浮窗（不受 Fragment 生命周期限制，后台/其他页面也能同步）
-                if (settings.getOverlayEnabled()) {
-                    val displayText = "⏰ ${formatTime(ms)}"
-                    CountdownOverlay.update(displayText)
-                    // 如果悬浮窗被意外移除则重新创建
-                    if (!CountdownOverlay.isShowing()) {
-                        CountdownOverlay.show(getApplication(), displayText)
-                    }
-                }
             }
             if (ms <= 0) onTimerFinished()
         }
     }
 
-    /** 倒计时自然结束 → 后台启动 AlertService 处理音频/震动/通知，同时触发 Fragment 弹窗 */
+    /** 倒计时自然结束 → 后台启动 AlertService 处理音频/通知，同时触发 Fragment 弹窗 */
     private fun onTimerFinished() {
         cancelTimer()
-        // 隐藏悬浮窗
-        CountdownOverlay.hide()
         // 保存提醒待处理标记（Fragment 恢复时据此弹窗）
         settings.saveAlertPending(true)
-        // 启动前台服务处理后台提醒（音频、震动、全屏通知）
+        // 启动前台服务处理后台提醒（音频、全屏通知）
         val ctx = getApplication<Application>()
         val intent = Intent(ctx, AlertService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -337,7 +318,6 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         // 续时
         nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
         settings.saveNextFeedTime(nextFeedTime)
-        alarmScheduler.scheduleAlarm(nextFeedTime)
         updateState {
             copy(
                 isPauseEnabled = true,

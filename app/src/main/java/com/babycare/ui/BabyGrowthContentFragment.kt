@@ -251,14 +251,13 @@ class BabyGrowthContentFragment : Fragment() {
                 vaccinationTime = selectedVaccinationTime,
                 nextVaccinationTime = selectedNextVaccinationTime,
                 nextVaccineName = binding.etNextVaccineName.text.toString().trim().takeIf { it.isNotEmpty() },
-                isLocked = true,
+                isLocked = false,
                 note = binding.etVaccineNote.text.toString().trim().takeIf { it.isNotEmpty() }
             )
             vaccineDao.upsert(record)
-            Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存并锁定", Toast.LENGTH_SHORT).show()
-            clearVaccineInput()
-            disableVaccineInput()
-            editingVaccineRecord = null
+            Toast.makeText(requireContext(), "✅ 疫苗接种记录已保存", Toast.LENGTH_SHORT).show()
+            // 保存后不锁定、不清空输入框、不清除 editingVaccineRecord
+            // 用户可直接继续修改或再次保存
             loadVaccines()
         }
     }
@@ -317,11 +316,10 @@ class BabyGrowthContentFragment : Fragment() {
             .setPositiveButton("删除") { _: DialogInterface?, _: Int ->
                 lifecycleScope.launch {
                     vaccineDao.delete(record)
-                    // 如果删除的是正在编辑的记录，清空输入
+                    // 如果删除的是正在编辑的记录，仅清空输入框但不禁用
                     if (editingVaccineRecord?.id == record.id) {
                         editingVaccineRecord = null
                         clearVaccineInput()
-                        disableVaccineInput()
                     }
                     loadVaccines()
                 }

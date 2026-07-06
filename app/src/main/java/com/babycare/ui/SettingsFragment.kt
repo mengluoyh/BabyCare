@@ -88,7 +88,6 @@ class SettingsFragment : Fragment() {
         // ─── 通知设置 ───
         binding.btnPickRingtone.setOnClickListener { pickRingtone() }
         binding.btnResetRingtone.setOnClickListener { resetRingtone() }
-        binding.btnSaveVibrate.setOnClickListener { saveVibrateSettings() }
     }
 
     private fun doLocalBackup() {
@@ -242,9 +241,6 @@ class SettingsFragment : Fragment() {
         }
         // 音频播报重复次数
         binding.etAudioRepeatCount.setText(settings.getAudioRepeatCount().toString())
-        // 震动参数（毫秒）
-        binding.etVibrateDuration.setText(settings.getVibrateDuration().toString())
-        binding.etVibrateInterval.setText(settings.getVibrateInterval().toString())
     }
 
     /** 打开系统文件选择器，让用户选取音频文件作为自定义铃声 */
@@ -279,39 +275,6 @@ class SettingsFragment : Fragment() {
         settings.saveCustomAudioPath(null)
         binding.tvCurrentRingtone.text = "默认铃声"
         binding.tvNotifyStatus.text = "✅ 已恢复默认铃声"
-    }
-
-    /** 保存震动与音频设置 */
-    private fun saveVibrateSettings() {
-        val durText = binding.etVibrateDuration.text.toString()
-        val intText = binding.etVibrateInterval.text.toString()
-        if (durText.isBlank() || intText.isBlank()) {
-            binding.tvNotifyStatus.text = "⚠️ 请填写震动时长和间隔时间"
-            return
-        }
-        var dur = durText.toLongOrNull()
-        var interval = intText.toLongOrNull()
-        if (dur == null || dur < 0) { binding.etVibrateDuration.error = "无效数字"; return }
-        if (interval == null || interval < 0) { binding.etVibrateInterval.error = "无效数字"; return }
-        // 确保最小值（毫秒）
-        if (dur == 0L) dur = 1L
-        if (interval == 0L) interval = 1L
-        settings.saveVibrateDuration(dur)
-        settings.saveVibrateInterval(interval)
-
-        // 音频播报重复次数
-        val repeatText = binding.etAudioRepeatCount.text.toString()
-        if (repeatText.isNotBlank()) {
-            val count = repeatText.toIntOrNull()
-            if (count != null && count > 0) {
-                settings.saveAudioRepeatCount(count)
-            } else {
-                binding.etAudioRepeatCount.error = "请输入大于0的数字"
-                return
-            }
-        }
-
-        binding.tvNotifyStatus.text = "✅ 设置已保存（震动${dur}ms, 间隔${interval}ms, 重复${settings.getAudioRepeatCount()}次）"
     }
 
     override fun onDestroyView() {

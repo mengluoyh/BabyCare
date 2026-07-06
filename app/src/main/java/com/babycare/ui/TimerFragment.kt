@@ -2,14 +2,12 @@
 package com.babycare.ui
 
 import android.content.DialogInterface
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CompoundButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,7 +15,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
-import com.babycare.util.CountdownOverlay
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -43,11 +40,6 @@ class TimerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // 检查悬浮窗权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !CountdownOverlay.hasPermission(requireContext())) {
-            Toast.makeText(requireContext(), "请在设置中允许「显示悬浮窗」以显示倒计时悬浮窗", Toast.LENGTH_LONG).show()
-        }
 
         setupTabs()
         setupUI()
@@ -122,19 +114,6 @@ class TimerFragment : Fragment() {
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
             binding.etCustomFormula.text?.clear()
         }
-
-        // ─── 悬浮窗开关 ───
-        binding.swOverlay.isChecked = settings.getOverlayEnabled()
-        binding.swOverlay.setOnCheckedChangeListener { _: CompoundButton, checked: Boolean ->
-            settings.saveOverlayEnabled(checked)
-            if (!checked) CountdownOverlay.hide()
-            else {
-                val state = viewModel.uiState.value
-                if (state.isPauseEnabled && !state.isPaused) {
-                    CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
-                }
-            }
-        }
     }
 
     // ═══════════════════ 状态观察 ═══════════════════
@@ -179,9 +158,6 @@ class TimerFragment : Fragment() {
 
     /** 显示「我知道了」弹窗 */
     private fun showAlertDialog() {
-        // 隐藏悬浮窗
-        CountdownOverlay.hide()
-
         // 弹窗：用户点击「我知道了」才续时+记录
         alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("🍼 喂奶时间到！")
