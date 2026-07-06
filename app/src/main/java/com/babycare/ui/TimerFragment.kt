@@ -5,7 +5,6 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -106,8 +105,6 @@ class TimerFragment : Fragment() {
             binding.etVolume.text?.clear()
         }
 
-        binding.btnStopAudio.setOnClickListener { dismissAlert() }
-
         binding.rbBreast.setOnCheckedChangeListener { _, checked ->
             binding.etVolume.isEnabled = !checked
             if (checked) binding.etVolume.text?.clear()
@@ -159,15 +156,6 @@ class TimerFragment : Fragment() {
                     binding.tvLastFormulaDetail.text = "🍼 上次配方奶 · ${state.lastFormulaDetail}"
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
                     binding.btnPause.isEnabled = state.isPauseEnabled
-
-                    // 倒计时进行中 → 显示悬浮窗（根据开关和权限）
-                    if (state.isPauseEnabled && !state.isPaused) {
-                        if (settings.getOverlayEnabled()) {
-                            CountdownOverlay.show(requireContext(), "⏰ ${state.countdownText}")
-                        }
-                    } else {
-                        CountdownOverlay.hide()
-                    }
                 }
             }
         }
@@ -210,7 +198,6 @@ class TimerFragment : Fragment() {
         handler.removeCallbacksAndMessages(null)
         alertDialog?.dismiss()
         alertDialog = null
-        binding.audioControlBar.visibility = View.GONE
         // 清除提醒标记
         settings.saveAlertPending(false)
     }
