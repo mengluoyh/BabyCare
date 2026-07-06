@@ -72,8 +72,8 @@ class SettingsFragment : Fragment() {
         // ─── 主题 ───
         binding.rgThemeMode.setOnCheckedChangeListener { _, checkedId ->
             val mode = when (checkedId) {
-                R.id.rbThemeLight -> "light"
-                R.id.rbThemeDark -> "dark"
+                binding.rbThemeLight.id -> "light"
+                binding.rbThemeDark.id -> "dark"
                 else -> "system"
             }
             settings.saveThemeMode(mode)
