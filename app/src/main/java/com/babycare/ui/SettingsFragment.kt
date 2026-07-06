@@ -14,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import com.babycare.data.SettingsManager
 import com.babycare.databinding.FragmentSettingsBinding
 import com.babycare.util.BackupManager
-import com.babycare.util.IconChanger
 import com.babycare.util.WebDavManager
 import kotlinx.coroutines.launch
 
@@ -42,7 +41,6 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         loadBackupConfig()
         loadThemeConfig()
-        loadIconConfig()
         loadNotifyConfig()
         setupUI()
     }
@@ -86,16 +84,6 @@ class SettingsFragment : Fragment() {
             })
             requireActivity().recreate()
         }
-
-        // ─── 图标（6色） ───
-        val current = IconChanger.getCurrentIcon(requireContext())
-        updateIconLabel(current)
-        binding.btnIconOrange.setOnClickListener { switchIcon(IconChanger.ICON_ORANGE) }
-        binding.btnIconBlue.setOnClickListener { switchIcon(IconChanger.ICON_BLUE) }
-        binding.btnIconPink.setOnClickListener { switchIcon(IconChanger.ICON_PINK) }
-        binding.btnIconGreen.setOnClickListener { switchIcon(IconChanger.ICON_GREEN) }
-        binding.btnIconPurple.setOnClickListener { switchIcon(IconChanger.ICON_PURPLE) }
-        binding.btnIconTeal.setOnClickListener { switchIcon(IconChanger.ICON_TEAL) }
 
         // ─── 通知设置 ───
         binding.btnPickRingtone.setOnClickListener { pickRingtone() }
@@ -238,23 +226,6 @@ class SettingsFragment : Fragment() {
             "dark" -> binding.rbThemeDark.isChecked = true
             else -> binding.rbThemeSystem.isChecked = true
         }
-    }
-
-    // ═══════════════════ 图标 ═══════════════════
-
-    private fun loadIconConfig() {
-        val current = IconChanger.getCurrentIcon(requireContext())
-        updateIconLabel(current)
-    }
-
-    private fun switchIcon(iconName: String) {
-        IconChanger.setIcon(requireContext(), iconName)
-        updateIconLabel(iconName)
-        Toast.makeText(requireContext(), "图标已切换为${IconChanger.getIconLabel(iconName)}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun updateIconLabel(iconName: String) {
-        binding.tvCurrentIcon.text = "当前：${IconChanger.getIconLabel(iconName)}"
     }
 
     // ═══════════════════ 通知设置 ═══════════════════
