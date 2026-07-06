@@ -55,6 +55,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private var birthDate: Long = 0
     private var countDownJob: kotlinx.coroutines.Job? = null
     private var timeSinceJob: kotlinx.coroutines.Job? = null
+    @Volatile
     private var audioPlayer: MediaPlayer? = null
 
     init {
