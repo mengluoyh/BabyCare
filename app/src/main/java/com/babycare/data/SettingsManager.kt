@@ -39,4 +39,13 @@ class SettingsManager(context: Context) {
     fun getWeightUnit(): String = prefs.getString("weight_unit", "kg") ?: "kg"
     fun saveWeightUnit(unit: String) = prefs.edit().putString("weight_unit", unit).apply()
 
+    // ─── 通知设置 ───
+    /** 震动时长（毫秒），默认 30000（30秒） */
+    fun getVibrateDuration(): Long = prefs.getLong("vibrate_duration", 30000L)
+    fun saveVibrateDuration(ms: Long) = prefs.edit().putLong("vibrate_duration", ms).apply()
+
+    /** 震动间隔（毫秒），震动结束后过多久再次震动，默认 60000（1分钟） */
+    fun getVibrateInterval(): Long = prefs.getLong("vibrate_interval", 60000L)
+    fun saveVibrateInterval(ms: Long) = prefs.edit().putLong("vibrate_interval", ms).apply()
+
 }

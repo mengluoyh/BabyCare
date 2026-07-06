@@ -176,20 +176,24 @@ class TimerFragment : Fragment() {
         // 隐藏悬浮窗
         CountdownOverlay.hide()
 
+        val settings = com.babycare.data.SettingsManager(requireContext())
+        val vibrateDuration = settings.getVibrateDuration()
+        val vibrateInterval = settings.getVibrateInterval()
+
         // === 震动模式 ===
-        // 阶段1：持续震动30秒
+        // 阶段1：持续震动 vibrateDuration 毫秒
         try {
             val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            vibrator.vibrate(longArrayOf(0, 30000), -1) // 连续震动30秒
+            vibrator.vibrate(longArrayOf(0, vibrateDuration), -1)
         } catch (_: Exception) {}
 
-        // 阶段2：30秒后开始每1分钟震动一次
+        // 阶段2：震动结束后开始每 vibrateInterval 毫秒震动一次
         handler.postDelayed({
-            startPeriodicVibration()
-        }, 30000)
+            startPeriodicVibration(vibrateInterval)
+        }, vibrateDuration)
 
         // 播放音频（最多60秒）
-        val audioPath = com.babycare.data.SettingsManager(requireContext()).getCustomAudioPath()
+        val audioPath = settings.getCustomAudioPath()
         mediaPlayer = AudioPlayer.playLooping(requireContext(), audioPath, 60_000L, handler) {
             dismissAlert()
         }
@@ -208,8 +212,8 @@ class TimerFragment : Fragment() {
             .also { it.show() }
     }
 
-    /** 每1分钟震动一次（短促） */
-    private fun startPeriodicVibration() {
+    /** 每 vibrateInterval 毫秒震动一次（短促） */
+    private fun startPeriodicVibration(intervalMs: Long) {
         vibrationJob?.cancel()
         vibrationJob = viewLifecycleOwner.lifecycleScope.launch {
             while (isActive) {
@@ -217,7 +221,7 @@ class TimerFragment : Fragment() {
                     val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
                     vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
                 } catch (_: Exception) {}
-                delay(60_000) // 等1分钟
+                delay(intervalMs)
             }
         }
     }
