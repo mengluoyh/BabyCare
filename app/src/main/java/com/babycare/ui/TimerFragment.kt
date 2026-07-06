@@ -184,8 +184,15 @@ class TimerFragment : Fragment() {
         // 阶段1：持续震动 vibrateDuration 毫秒
         try {
             val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            vibrator.vibrate(longArrayOf(0, vibrateDuration), -1)
-        } catch (_: Exception) {}
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = android.os.VibrationEffect.createWaveform(longArrayOf(vibrateDuration), -1)
+                vibrator.vibrate(effect)
+            } else {
+                vibrator.vibrate(longArrayOf(0, vibrateDuration), -1)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("TimerFragment", "阶段1震动失败", e)
+        }
 
         // 阶段2：震动结束后开始每 vibrateInterval 毫秒震动一次
         handler.postDelayed({
@@ -219,8 +226,15 @@ class TimerFragment : Fragment() {
             while (isActive) {
                 try {
                     val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-                    vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
-                } catch (_: Exception) {}
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val effect = android.os.VibrationEffect.createWaveform(longArrayOf(500, 200, 500), -1)
+                        vibrator.vibrate(effect)
+                    } else {
+                        vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("TimerFragment", "周期震动失败", e)
+                }
                 delay(intervalMs)
             }
         }
