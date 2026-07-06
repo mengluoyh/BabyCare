@@ -25,6 +25,7 @@ object AudioPlayer {
                 }
             }
         } catch (e: Exception) {
+            android.util.Log.w("AudioPlayer", "播放音频失败", e)
             null
         }
     }
@@ -132,6 +133,7 @@ object AudioPlayer {
             mp
         } catch (e: Exception) {
             android.util.Log.w("AudioPlayer", "创建播放器失败", e)
+            onTimeout()
             null
         }
     }

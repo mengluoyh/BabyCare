@@ -202,10 +202,10 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         timeSinceJob = viewModelScope.launch {
             while (true) {
                 val (breastTs, formulaTs) = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val all = feedingDao.getAllSnapshot()
-                    val breast = all.firstOrNull { it.feedType == "breast" }?.timestamp ?: 0L
-                    val formula = all.firstOrNull { it.feedType == "formula" }?.timestamp ?: 0L
-                    Pair(breast, formula)
+                    Pair(
+                        feedingDao.getLatestBreastTimestamp() ?: 0L,
+                        feedingDao.getLatestFormulaTimestamp() ?: 0L
+                    )
                 }
                 val now = System.currentTimeMillis()
                 val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -417,7 +417,7 @@ data class CountdownUiState(
 )
 
 sealed class CountdownEvent {
-    /** 触发喂奶提醒（震动+音频+对话框） */
+    /** 触发喂奶提醒（音频+对话框） */
     data object TriggerAlert : CountdownEvent()
     /** 关闭提醒 */
     data object DismissAlert : CountdownEvent()

@@ -39,7 +39,6 @@ class BabyGrowthContentFragment : Fragment() {
 
     private var selectedVaccinationTime: Long = 0L
     private var selectedNextVaccinationTime: Long? = null
-    private val vaccineList = mutableListOf<VaccinationRecord>()
     private lateinit var vaccineAdapter: VaccineListAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -291,15 +290,6 @@ class BabyGrowthContentFragment : Fragment() {
         }
     }
 
-    private fun disableVaccineInput() {
-        binding.etVaccineName.isEnabled = false
-        binding.etVaccinationTime.isEnabled = false
-        binding.etNextVaccination.isEnabled = false
-        binding.etNextVaccineName.isEnabled = false
-        binding.etVaccineNote.isEnabled = false
-        binding.btnSaveVaccine.isEnabled = false
-    }
-
     private fun enableVaccineInput() {
         binding.etVaccineName.isEnabled = true
         binding.etVaccinationTime.isEnabled = true
@@ -332,8 +322,6 @@ class BabyGrowthContentFragment : Fragment() {
     private fun loadVaccines() {
         lifecycleScope.launch {
             val records = vaccineDao.getAllSnapshot()
-            vaccineList.clear()
-            vaccineList.addAll(records)
             vaccineAdapter.submitList(records)
             binding.btnUnlockVaccine.isEnabled = records.any { it.isLocked }
         }

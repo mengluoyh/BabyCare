@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * 计时页面。UI 层：展示倒计时、悬浮窗、弹窗提醒。
- * 音频和震动由 [com.babycare.service.AlertService] 处理。
+ * 计时页面。UI 层：展示倒计时、弹窗提醒。
+ * 音频播报由 [com.babycare.service.AlertService] 处理。
  */
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
