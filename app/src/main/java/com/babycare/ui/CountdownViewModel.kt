@@ -2,13 +2,17 @@
 package com.babycare.ui
 
 import android.app.Application
+import android.content.Intent
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.data.SettingsManager
 import com.babycare.service.AlarmScheduler
+import com.babycare.service.AlertService
 import com.babycare.util.AgeCalculator
+import com.babycare.util.CountdownOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -277,15 +281,31 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                 if (ms <= 0) break
                 updateDisplay(ms)
                 updateEstimatedTime(ms)
+                // 直接更新悬浮窗（不受 Fragment 生命周期限制，后台也能同步）
+                if (settings.getOverlayEnabled()) {
+                    CountdownOverlay.update("⏰ ${formatTime(ms)}")
+                }
             }
             if (ms <= 0) onTimerFinished()
         }
     }
 
-    /** 倒计时自然结束 → 仅触发提醒，不自动续时，等待用户点击"我知道了"才记录+续时 */
+    /** 倒计时自然结束 → 后台启动 AlertService 处理音频/震动/通知，同时触发 Fragment 弹窗 */
     private fun onTimerFinished() {
         cancelTimer()
-        // 触发提醒（震动+音频+弹窗）
+        // 隐藏悬浮窗
+        CountdownOverlay.hide()
+        // 保存提醒待处理标记（Fragment 恢复时据此弹窗）
+        settings.saveAlertPending(true)
+        // 启动前台服务处理后台提醒（音频、震动、全屏通知）
+        val ctx = getApplication<Application>()
+        val intent = Intent(ctx, AlertService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ctx.startForegroundService(intent)
+        } else {
+            ctx.startService(intent)
+        }
+        // 触发提醒事件（Fragment 活跃时立即响应弹窗）
         viewModelScope.launch { _events.emit(CountdownEvent.TriggerAlert) }
         updateState {
             copy(
@@ -295,7 +315,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /** 用户点击「我知道了」→ 自动记录喂养 + 重启倒计时 */
+    /** 用户点击「我知道了」→ 自动记录喂养 + 重启倒计时 + 停止提醒服务 */
     fun confirmTimerFinished() {
         viewModelScope.launch {
             val prev = feedingDao.getLatest()
@@ -320,6 +340,9 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             )
         }
         startCountdown()
+        // 停止提醒服务
+        val ctx = getApplication<Application>()
+        ctx.stopService(Intent(ctx, AlertService::class.java))
     }
 
     private fun cancelTimer() {

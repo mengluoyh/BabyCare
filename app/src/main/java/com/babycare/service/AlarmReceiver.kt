@@ -1,45 +1,22 @@
 // BabyCare/app/src/main/java/com/babycare/service/AlarmReceiver.kt
 package com.babycare.service
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.core.app.NotificationCompat
-import com.babycare.data.SettingsManager
 
+/**
+ * 闹钟广播接收器：收到倒计时结束广播后启动 [AlertService] 前台服务，
+ * 由服务处理音频播放、震动和全屏通知。
+ */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val channelId = "feeding_channel"
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val settings = SettingsManager(context)
-        val vibrateDuration = settings.getVibrateDuration()
-        val vibrationPattern = longArrayOf(0, vibrateDuration.coerceAtMost(5000))
-
+        val serviceIntent = Intent(context, AlertService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "喂奶提醒",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                this.vibrationPattern = vibrationPattern
-                enableVibration(true)
-            }
-            nm.createNotificationChannel(channel)
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
         }
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("🍼 喂奶时间到！")
-            .setContentText("宝宝该喂奶了")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setVibrate(vibrationPattern)
-            .build()
-
-        nm.notify(AlarmScheduler.NOTIFICATION_ID, notification)
     }
 }

@@ -58,4 +58,9 @@ class SettingsManager(context: Context) {
     fun getAudioRepeatCount(): Int = prefs.getInt("audio_repeat_count", 3)
     fun saveAudioRepeatCount(count: Int) = prefs.edit().putInt("audio_repeat_count", count).apply()
 
+    // ─── 提醒待处理标记 ───
+    /** 倒计时结束后是否有待处理的喂奶提醒弹窗 */
+    fun getAlertPending(): Boolean = prefs.getBoolean("alert_pending", false)
+    fun saveAlertPending(pending: Boolean) = prefs.edit().putBoolean("alert_pending", pending).apply()
+
 }

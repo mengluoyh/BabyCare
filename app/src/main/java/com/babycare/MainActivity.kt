@@ -22,8 +22,11 @@ import com.babycare.ui.*
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var settings: SettingsManager
-    private companion object {
+
+    companion object {
         private const val REQUEST_STORAGE = 1001
+        /** 来自 AlertService 全屏通知的 Action，指示进入时弹出喂奶提醒对话框 */
+        const val ACTION_SHOW_ALERT = "com.babycare.action.SHOW_ALERT"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +37,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 处理从 AlertService 全屏通知传入的提醒 intent
+        handleAlertIntent(intent)
 
         if (savedInstanceState == null) {
             loadFragment(TimerFragment())
@@ -51,6 +57,24 @@ class MainActivity : AppCompatActivity() {
 
         // 启动时申请存储权限
         requestStoragePermission()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // 如果 App 已在运行，通过此方法接收新 Intent
+        handleAlertIntent(intent)
+    }
+
+    /**
+     * 处理提醒 Intent：当 AlertService 的全屏通知触发时，
+     * 确保导航到 Timer 页面，TimerFragment 会检查 alert_pending 标记自动弹窗。
+     */
+    private fun handleAlertIntent(intent: Intent?) {
+        if (intent?.action == ACTION_SHOW_ALERT) {
+            // 切换到 timer 页
+            binding.bottomNav.selectedItemId = R.id.nav_timer
+            loadFragment(TimerFragment())
+        }
     }
 
     /**

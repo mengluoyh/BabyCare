@@ -62,6 +62,11 @@ class TimerFragment : Fragment() {
         setupUI()
         observeState()
         observeEvents()
+
+        // 检查是否有待处理的喂奶提醒（后台倒计时结束时设置的标记）
+        if (settings.getAlertPending()) {
+            showAlertDialog()
+        }
     }
 
     // ═══════════════════ Tab切换 ═══════════════════
@@ -182,7 +187,7 @@ class TimerFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.events.collectLatest { event ->
                     when (event) {
-                        CountdownEvent.TriggerAlert -> triggerAlert()
+                        CountdownEvent.TriggerAlert -> showAlertDialog()
                         CountdownEvent.DismissAlert -> dismissAlert()
                     }
                 }
@@ -190,45 +195,14 @@ class TimerFragment : Fragment() {
         }
     }
 
-    // ═══════════════════ 提醒 ═══════════════════
+    // ═══════════════════ 提醒（仅弹窗，音频/震动由 AlertService 处理） ═══════════════════
 
-    private fun triggerAlert() {
+    /** 显示「我知道了」弹窗 */
+    private fun showAlertDialog() {
         // 隐藏悬浮窗
         CountdownOverlay.hide()
 
-        val settings = com.babycare.data.SettingsManager(requireContext())
-        val vibrateDuration = settings.getVibrateDuration()
-        val vibrateInterval = settings.getVibrateInterval()
-
-        // === 震动模式 ===
-        // 阶段1：持续震动 vibrateDuration 毫秒
-        try {
-            val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val effect = android.os.VibrationEffect.createWaveform(longArrayOf(vibrateDuration), -1)
-                vibrator.vibrate(effect)
-            } else {
-                vibrator.vibrate(longArrayOf(0, vibrateDuration), -1)
-            }
-        } catch (e: Exception) {
-            android.util.Log.w("TimerFragment", "阶段1震动失败", e)
-        }
-
-        // 阶段2：震动结束后开始每 vibrateInterval 毫秒震动一次
-        handler.postDelayed({
-            startPeriodicVibration(vibrateInterval)
-        }, vibrateDuration)
-
-        // 播放音频（重复指定次数后自动停止）
-        val audioPath = settings.getCustomAudioPath()
-        val repeatCount = settings.getAudioRepeatCount()
-        mediaPlayer = AudioPlayer.playWithRepeatCount(requireContext(), audioPath, repeatCount) {
-            // 播放完毕自动停止音频，不关闭弹窗
-            handler.post { binding.audioControlBar.visibility = View.GONE }
-        }
-        binding.audioControlBar.visibility = View.VISIBLE
-
-        // 弹窗：用户点击「我知道了」才续时
+        // 弹窗：用户点击「我知道了」才续时+记录
         alertDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("🍼 喂奶时间到！")
             .setMessage("宝宝该喂奶了")
@@ -239,27 +213,6 @@ class TimerFragment : Fragment() {
             }
             .create()
             .also { it.show() }
-    }
-
-    /** 每 vibrateInterval 毫秒震动一次（短促） */
-    private fun startPeriodicVibration(intervalMs: Long) {
-        vibrationJob?.cancel()
-        vibrationJob = viewLifecycleOwner.lifecycleScope.launch {
-            while (isActive) {
-                try {
-                    val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val effect = android.os.VibrationEffect.createWaveform(longArrayOf(500, 200, 500), -1)
-                        vibrator.vibrate(effect)
-                    } else {
-                        vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.w("TimerFragment", "周期震动失败", e)
-                }
-                delay(intervalMs)
-            }
-        }
     }
 
     private fun dismissAlert() {
@@ -276,6 +229,8 @@ class TimerFragment : Fragment() {
             android.util.Log.w("TimerFragment", "取消震动失败", e)
         }
         binding.audioControlBar.visibility = View.GONE
+        // 清除提醒标记
+        settings.saveAlertPending(false)
     }
 
     private fun stopAudio() {
