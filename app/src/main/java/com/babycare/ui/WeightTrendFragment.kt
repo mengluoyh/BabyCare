@@ -230,8 +230,7 @@ class WeightTrendFragment : Fragment() {
             val r = getItem(position)
             holder.tv.text = "${DATE_FMT.format(Date(r.timestamp))}    ⚖️ ${r.weight} kg"
             holder.tv.setOnLongClickListener {
-                val pos = holder.bindingAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) onDelete(getItem(pos))
+                onDelete(r)
                 true
             }
         }

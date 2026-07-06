@@ -111,7 +111,7 @@ class VaccinationRecordsFragment : Fragment() {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
-                ).also { setMargins(0, 12, 0, 0) }
+                ).also { it.setMargins(0, 12, 0, 0) }
                 visibility = View.GONE
 
                 prevBtn = MaterialButton(context).apply {
