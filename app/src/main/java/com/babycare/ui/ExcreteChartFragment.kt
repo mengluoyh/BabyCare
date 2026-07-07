@@ -46,19 +46,19 @@ class ExcreteChartFragment : Fragment() {
             val records = excreteDao.getExcretesBetween(start, end)
 
             val sdf = CHART_FMT
-            val dailyData = mutableMapOf<String, Pair<Int, Int>>()
+            val dailyData = mutableMapOf<String, Triple<Int, Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
                     timeInMillis = end
                     add(Calendar.DAY_OF_MONTH, -i)
                 }
-                dailyData[sdf.format(cal.time)] = Pair(0, 0)
+                dailyData[sdf.format(cal.time)] = Triple(0, 0, 0)
             }
             for (r in records) {
                 val key = sdf.format(Date(r.timestamp))
-                val (bowel, pee) = dailyData[key] ?: Pair(0, 0)
-                if (r.type == "bowel") dailyData[key] = Pair(bowel + 1, pee)
-                else dailyData[key] = Pair(bowel, pee + 1)
+                val (bowel, pee, _) = dailyData[key] ?: Triple(0, 0, 0)
+                if (r.type == "bowel") dailyData[key] = Triple(bowel + 1, pee, 0)
+                else dailyData[key] = Triple(bowel, pee + 1, 0)
             }
 
             val totalBowel = dailyData.values.sumOf { it.first }
