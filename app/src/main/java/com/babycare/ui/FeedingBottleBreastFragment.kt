@@ -66,16 +66,16 @@ class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable
         )
     }
 
-    fun goToPage(page: Int) {
+    override fun goToPage(page: Int) {
         val total = getTotalPages()
         if (page < 0 || page >= total) return
         currentPage = page
         updateList()
     }
 
-    fun getCurrentPage() = currentPage
-    fun getTotalPages() = ((allRecords.size + pageSize - 1) / pageSize).coerceAtLeast(1)
-    fun getPageSize() = pageSize
+    override fun getCurrentPage() = currentPage
+    override fun getTotalPages() = ((allRecords.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    override fun getPageSize() = pageSize
 
     private fun deleteRecord(record: FeedingRecord) {
         AlertDialog.Builder(requireContext())
