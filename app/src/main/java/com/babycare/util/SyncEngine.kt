@@ -26,7 +26,7 @@ import java.util.*
  */
 object SyncEngine {
 
-    private const val SYNC_DIR = "babycare_sync"
+    private val SYNC_DIR = "${Constants.WEBDAV_DIR}/babycare_sync"
     private const val PREF_NAME = "sync_prefs"
     private const val KEY_DEVICE_ID = "sync_device_id"
     private const val KEY_LAST_SYNC = "sync_last_sync_time"
@@ -328,22 +328,27 @@ object SyncEngine {
 
     // ── 工具方法 ──
 
-    /** 在 WebDAV 服务器上创建 sync 目录（MKCOL），目录已存在时忽略错误 */
+    /** 在 WebDAV 服务器上创建 sync 目录（MKCOL），支持嵌套路径逐级创建 */
     private fun ensureSyncDir(config: WebDavConfig) {
-        try {
-            val dirUrl = config.url.trimEnd('/') + "/$SYNC_DIR/"
-            val conn = URL(dirUrl).openConnection() as HttpURLConnection
-            conn.requestMethod = "MKCOL"
-            conn.connectTimeout = TIMEOUT
-            conn.readTimeout = TIMEOUT
-            conn.setRequestProperty("Authorization", basicAuth(config))
-            val code = conn.responseCode
-            // 201 Created / 405 Method Not Allowed(已存在) / 409 Conflict(已存在) 都视为正常
-            if (code !in 200..299 && code != 405 && code != 409) {
-                android.util.Log.w("SyncEngine", "MKCOL 返回非预期状态码: $code，继续执行")
+        val baseUrl = config.url.trimEnd('/')
+        val parts = SYNC_DIR.split("/")
+        var current = baseUrl
+        for (part in parts) {
+            current += "/$part"
+            try {
+                val conn = URL(current + "/").openConnection() as HttpURLConnection
+                conn.requestMethod = "MKCOL"
+                conn.connectTimeout = TIMEOUT
+                conn.readTimeout = TIMEOUT
+                conn.setRequestProperty("Authorization", basicAuth(config))
+                val code = conn.responseCode
+                // 201 Created / 405(已存在) / 409(已存在) / 3xx(重定向) 都视为正常
+                if (code !in 200..299 && code != 405 && code != 409 && code !in 300..399) {
+                    android.util.Log.w("SyncEngine", "MKCOL $current 返回 $code，继续执行")
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("SyncEngine", "创建目录 $current 失败(可能已存在): ${e.message}")
             }
-        } catch (e: Exception) {
-            android.util.Log.w("SyncEngine", "创建 sync 目录失败(可能已存在): ${e.message}")
         }
     }
 

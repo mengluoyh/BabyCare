@@ -20,18 +20,22 @@ object WebDavManager {
 
     private const val TIMEOUT = 15000
     private const val INDEX_FILE = "babycare_index.json"
+    private const val BACKUP_DIR = Constants.WEBDAV_DIR
 
-    /** 上传备份到 WebDAV */
+    /** 上传备份到 WebDAV（自动创建包名目录） */
     suspend fun upload(context: Context): Result<String> = withContext(Dispatchers.IO) {
         try {
             val config = loadConfig(context) ?: return@withContext Result.failure(Exception("未配置 WebDAV"))
             if (config.url.isBlank()) return@withContext Result.failure(Exception("WebDAV 地址为空"))
 
+            // 确保远程备份目录存在
+            ensureDir(config, BACKUP_DIR)
+
             val data = fetchAllData()
             val json = Gson().toJson(data)
             val filename = "babycare_backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json"
             val baseUrl = config.url.trimEnd('/')
-            val targetUrl = baseUrl + "/" + filename
+            val targetUrl = "$baseUrl/$BACKUP_DIR/$filename"
 
             // 上传备份文件
             val conn = URL(targetUrl).openConnection() as HttpURLConnection
@@ -53,7 +57,7 @@ object WebDavManager {
             // 更新远程索引文件（方便跨设备恢复）
             updateRemoteIndex(config, baseUrl, filename)
 
-            Result.success("WebDAV 上传成功: $filename")
+            Result.success("WebDAV 上传成功: $BACKUP_DIR/$filename")
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -61,7 +65,7 @@ object WebDavManager {
 
     /** 更新远程索引文件：追加新文件名 */
     private fun updateRemoteIndex(config: WebDavConfig, baseUrl: String, newFilename: String) {
-        val indexUrl = baseUrl + "/" + INDEX_FILE
+        val indexUrl = "$baseUrl/$BACKUP_DIR/$INDEX_FILE"
         // 读取已有索引
         val existing = mutableListOf<String>()
         try {
@@ -114,7 +118,7 @@ object WebDavManager {
             }
 
             // 下载最新备份
-            val downloadUrl = baseUrl + "/" + files.first()
+            val downloadUrl = "$baseUrl/$BACKUP_DIR/${files.first()}"
             val getConn = URL(downloadUrl).openConnection() as HttpURLConnection
             getConn.requestMethod = "GET"
             getConn.connectTimeout = TIMEOUT
@@ -196,6 +200,30 @@ object WebDavManager {
 
     // ═══════════════════ 内部方法 ═══════════════════
 
+    /** 在 WebDAV 服务器上创建目录（MKCOL），支持嵌套路径（如 "a/b/c" 逐级创建） */
+    private fun ensureDir(config: WebDavConfig, dir: String) {
+        val baseUrl = config.url.trimEnd('/')
+        val parts = dir.split("/")
+        var current = baseUrl
+        for (part in parts) {
+            current += "/$part"
+            try {
+                val conn = URL(current + "/").openConnection() as HttpURLConnection
+                conn.requestMethod = "MKCOL"
+                conn.connectTimeout = TIMEOUT
+                conn.readTimeout = TIMEOUT
+                conn.setRequestProperty("Authorization", basicAuth(config))
+                val code = conn.responseCode
+                // 201 Created / 405(已存在) / 409(已存在) / 301/302(重定向) 都视为正常
+                if (code !in 200..299 && code != 405 && code != 409 && code !in 300..399) {
+                    android.util.Log.w("WebDavManager", "MKCOL $current/$part 返回 $code，继续执行")
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("WebDavManager", "创建目录 $current/$part 失败(可能已存在): ${e.message}")
+            }
+        }
+    }
+
     private fun basicAuth(config: WebDavConfig): String {
         val raw = "${config.username}:${config.password}"
         return "Basic " + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -216,7 +244,7 @@ object WebDavManager {
 
     /** 列出 WebDAV 上所有备份文件（按文件名倒序） */
     private fun listBackupFiles(config: WebDavConfig, context: Context? = null): List<String> {
-        val listUrl = config.url.trimEnd('/') + "/"
+        val listUrl = config.url.trimEnd('/') + "/" + BACKUP_DIR + "/"
 
         // 首选 PROPFIND（标准 WebDAV），失败则降级
         val body: String? = try {
@@ -280,7 +308,7 @@ object WebDavManager {
 
         // 降级：尝试读取远程索引文件 babycare_index.json
         try {
-            val indexUrl = listUrl + INDEX_FILE
+            val indexUrl = config.url.trimEnd('/') + "/" + BACKUP_DIR + "/" + INDEX_FILE
             val idxConn = URL(indexUrl).openConnection() as HttpURLConnection
             idxConn.requestMethod = "GET"
             idxConn.connectTimeout = TIMEOUT

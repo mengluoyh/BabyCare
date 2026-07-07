@@ -7,6 +7,9 @@ object Constants {
     const val BACKUP_PREFIX = "babycare_backup_"
     const val BACKUP_SUFFIX = ".json"
 
+    // ─── WebDAV 远程目录（以包名命名） ───
+    const val WEBDAV_DIR = "com.babycare"
+
     // ─── 喂养类型常量 ───
     const val FEED_BREAST = "breast"
     const val FEED_BOTTLE_BREAST = "bottle_breast"
