@@ -22,12 +22,14 @@ class BabyCareApp : Application() {
         super.onCreate()
         instance = this
 
-        // 方案1：启动时静默同步（失败不弹窗，仅日志）
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                SyncEngine.sync(this@BabyCareApp)
-            } catch (e: Exception) {
-                android.util.Log.w("BabyCareApp", "启动同步失败: ${e.message}")
+        // 方案1：启动时静默同步（仅在开启自动同步时执行）
+        if (SettingsManager(this).isAutoSyncEnabled()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    SyncEngine.sync(this@BabyCareApp)
+                } catch (e: Exception) {
+                    android.util.Log.w("BabyCareApp", "启动同步失败: ${e.message}")
+                }
             }
         }
 

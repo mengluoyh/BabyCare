@@ -58,8 +58,6 @@ object SyncEngine {
 
     /** 最大重试次数 */
     private const val MAX_RETRIES = 3
-    /** 批量处理每批最大记录数 */
-    private const val BATCH_SIZE = 50
 
     suspend fun sync(context: Context): Result<SyncSummary> = withContext(Dispatchers.IO) {
         try {

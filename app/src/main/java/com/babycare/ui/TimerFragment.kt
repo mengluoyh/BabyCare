@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -27,7 +27,7 @@ class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: CountdownViewModel by viewModels()
+    private val viewModel: CountdownViewModel by activityViewModels()
 
     private var alertDialog: androidx.appcompat.app.AlertDialog? = null
 
@@ -39,18 +39,19 @@ class TimerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 恢复之前保存的输入框内容（切换界面时内容不丢失）
-        if (!savedIntervalText.isNullOrEmpty()) {
-            binding.etInterval.setText(savedIntervalText)
+        // 恢复之前保存的输入框内容（Activity级 ViewModel 跨导航不丢失）
+        val form = viewModel.loadFormState()
+        if (!form.savedIntervalText.isNullOrEmpty()) {
+            binding.etInterval.setText(form.savedIntervalText)
         }
-        if (!savedVolumeText.isNullOrEmpty()) {
-            binding.etVolume.setText(savedVolumeText)
+        if (!form.savedVolumeText.isNullOrEmpty()) {
+            binding.etVolume.setText(form.savedVolumeText)
         }
-        if (!savedCustomFormulaText.isNullOrEmpty()) {
-            binding.etCustomFormula.setText(savedCustomFormulaText)
+        if (!form.savedCustomFormulaText.isNullOrEmpty()) {
+            binding.etCustomFormula.setText(form.savedCustomFormulaText)
         }
-        if (savedFeedType != null) {
-            when (savedFeedType) {
+        if (form.savedFeedType != null) {
+            when (form.savedFeedType) {
                 Constants.FEED_BREAST -> binding.rbBreast.isChecked = true
                 Constants.FEED_BOTTLE_BREAST -> binding.rbBottleBreast.isChecked = true
                 else -> binding.rbFormula.isChecked = true
@@ -231,15 +232,17 @@ class TimerFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        // 切换界面时保存输入框内容
-        savedIntervalText = binding.etInterval.text?.toString()
-        savedVolumeText = binding.etVolume.text?.toString()
-        savedCustomFormulaText = binding.etCustomFormula.text?.toString()
-        savedFeedType = when {
-            binding.rbBreast.isChecked -> Constants.FEED_BREAST
-            binding.rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
-            else -> Constants.FEED_FORMULA
-        }
+        // 切换界面时保存输入框内容到 Activity 级 ViewModel
+        viewModel.saveFormState(
+            interval = binding.etInterval.text?.toString(),
+            volume = binding.etVolume.text?.toString(),
+            customFormula = binding.etCustomFormula.text?.toString(),
+            feedType = when {
+                binding.rbBreast.isChecked -> Constants.FEED_BREAST
+                binding.rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+                else -> Constants.FEED_FORMULA
+            }
+        )
     }
 
     override fun onDestroyView() {
@@ -247,12 +250,5 @@ class TimerFragment : Fragment() {
         alertDialog = null
         _binding = null
         super.onDestroyView()
-    }
-
-    companion object {
-        private var savedIntervalText: String? = null
-        private var savedVolumeText: String? = null
-        private var savedCustomFormulaText: String? = null
-        private var savedFeedType: String? = null
     }
 }

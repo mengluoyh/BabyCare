@@ -16,6 +16,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.fragment.app.FragmentManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -55,6 +56,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_settings -> loadFragment(SettingsFragment())
             }
             true
+        }
+
+        // 恢复底部导航选中状态（Activity 重建后 FragmentManager 自动恢复 Fragment）
+        if (savedInstanceState != null) {
+            restoreBottomNavSelection()
         }
 
         // 启动时申请存储权限
@@ -126,6 +132,24 @@ class MainActivity : AppCompatActivity() {
             else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
         AppCompatDelegate.setDefaultNightMode(modeValue)
+    }
+
+    /**
+     * 根据 FragmentManager 当前显示的 Fragment 恢复底部导航高亮
+     */
+    private fun restoreBottomNavSelection() {
+        val currentTag = supportFragmentManager.findFragmentById(R.id.fragment_container)?.let {
+            when (it) {
+                is com.babycare.ui.TimerFragment -> R.id.nav_timer
+                is com.babycare.ui.RecordsFragment -> R.id.nav_records
+                is com.babycare.ui.BabyGrowthFragment -> R.id.nav_baby_growth
+                is com.babycare.ui.SettingsFragment -> R.id.nav_settings
+                else -> null
+            }
+        }
+        if (currentTag != null) {
+            binding.bottomNav.selectedItemId = currentTag
+        }
     }
 
     /**

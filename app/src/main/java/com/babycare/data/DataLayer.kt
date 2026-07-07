@@ -395,12 +395,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** v9→v10：初始化遗留记录的 feedType（NULL/空→'formula'），确保数据一致 */
+        /** v9→v10：初始化遗留记录的 feedType（NULL/空→'formula'）& 修复 lastModified=0 */
         val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("UPDATE feeding_records SET feedType = 'formula' WHERE feedType IS NULL OR feedType = ''")
-                db.execSQL("UPDATE feeding_records SET lastModified = lastModified WHERE lastModified = 0")
-                android.util.Log.w("AppDatabase", "Migration 9->10: initialized NULL feedType to 'formula'")
+                db.execSQL("UPDATE feeding_records SET lastModified = strftime('%s','now')*1000 WHERE lastModified = 0")
+                android.util.Log.w("AppDatabase", "Migration 9->10: initialized NULL feedType & zero lastModified")
             }
         }
 

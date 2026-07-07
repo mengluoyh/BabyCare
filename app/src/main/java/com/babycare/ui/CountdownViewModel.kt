@@ -21,8 +21,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * 倒计时 ViewModel，管理喂奶倒计时逻辑、喂养记录写入和今日统计。
@@ -31,8 +32,8 @@ import java.util.*
 class CountdownViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
-        /** 预计时间格式化（线程安全：仅在主线程使用） */
-        private val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
+        /** 预计时间格式化（java.time 线程安全） */
+        private val TIME_FMT = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
     }
 
     private val app = application as BabyCareApp
@@ -228,19 +229,19 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
                 val now = System.currentTimeMillis()
-                val breastTimeStr = if (breastTs > 0) TIME_FMT.format(Date(breastTs)) else "--:--"
+                val breastTimeStr = if (breastTs > 0) TIME_FMT.format(Instant.ofEpochMilli(breastTs)) else "--:--"
                 val breastDetail = if (breastTs > 0) {
                     val elapsed = now - breastTs
                     formatDurationBrief(elapsed)
                 } else "暂无记录"
 
-                val bottleBreastTimeStr = if (bottleBreastTs > 0) TIME_FMT.format(Date(bottleBreastTs)) else "--:--"
+                val bottleBreastTimeStr = if (bottleBreastTs > 0) TIME_FMT.format(Instant.ofEpochMilli(bottleBreastTs)) else "--:--"
                 val bottleBreastDetail = if (bottleBreastTs > 0) {
                     val elapsed = now - bottleBreastTs
                     formatDurationBrief(elapsed)
                 } else "暂无记录"
 
-                val formulaTimeStr = if (formulaTs > 0) TIME_FMT.format(Date(formulaTs)) else "--:--"
+                val formulaTimeStr = if (formulaTs > 0) TIME_FMT.format(Instant.ofEpochMilli(formulaTs)) else "--:--"
                 val formulaDetail = if (formulaTs > 0) {
                     val elapsed = now - formulaTs
                     formatDurationBrief(elapsed)
@@ -405,7 +406,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         val text = if (remainingMs <= 0) ""
         else {
             val clock = System.currentTimeMillis() + remainingMs
-            "预计 ${TIME_FMT.format(Date(clock))} 可以喂奶"
+            "预计 ${TIME_FMT.format(Instant.ofEpochMilli(clock))} 可以喂奶"
         }
         updateState { copy(estimatedTimeText = text) }
     }
@@ -460,7 +461,32 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private fun updateState(transform: CountdownUiState.() -> CountdownUiState) {
         _uiState.value = _uiState.value.transform()
     }
+
+    // ─── 表单输入持久化（跨导航不丢失） ───
+
+    /** 从 [CountdownUiState] 读取保存的表单值 */
+    fun loadFormState(): FormState {
+        val s = _uiState.value
+        return FormState(s.savedIntervalText, s.savedVolumeText, s.savedCustomFormulaText, s.savedFeedType)
+    }
+
+    /** 将当前表单值写入 [CountdownUiState] */
+    fun saveFormState(interval: String?, volume: String?, customFormula: String?, feedType: String?) {
+        _uiState.value = _uiState.value.copy(
+            savedIntervalText = interval,
+            savedVolumeText = volume,
+            savedCustomFormulaText = customFormula,
+            savedFeedType = feedType
+        )
+    }
 }
+
+data class FormState(
+    val savedIntervalText: String?,
+    val savedVolumeText: String?,
+    val savedCustomFormulaText: String?,
+    val savedFeedType: String?
+)
 
 // ─── 数据类型 ─────────────────────────────────────────
 
@@ -483,7 +509,12 @@ data class CountdownUiState(
     val lastBottleBreastTime: String = "--:--",
     val lastBottleBreastDetail: String = "暂无记录",
     val lastFormulaTime: String = "--:--",
-    val lastFormulaDetail: String = "暂无记录"
+    val lastFormulaDetail: String = "暂无记录",
+    // ─── 表单输入保留（Activity级ViewModel跨导航存活） ───
+    val savedIntervalText: String? = null,
+    val savedVolumeText: String? = null,
+    val savedCustomFormulaText: String? = null,
+    val savedFeedType: String? = null
 )
 
 // ─── 事件类型 ─────────────────────────────────────────
