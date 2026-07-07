@@ -192,6 +192,29 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <TextView
+                                android:id="@+id/tvLastBottleBreastTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--:--"
+                                android:textSize="28sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/warm_orange" />
+                            <TextView
+                                android:id="@+id/tvLastBottleBreastDetail"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🍶 上次瓶喂母乳"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
                                 android:id="@+id/tvLastFormulaTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -243,7 +266,13 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="🤱 母乳" />
+                            android:text="🤱 亲喂" />
+                        <RadioButton
+                            android:id="@+id/rbBottleBreast"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🍶 瓶喂母乳" />
                         <RadioButton
                             android:id="@+id/rbFormula"
                             android:layout_width="0dp"
@@ -256,7 +285,7 @@
                         android:id="@+id/etVolume"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="配方奶量 (ml)"
+                        android:hint="奶量 (ml，亲喂不填)"
                         android:inputType="number"
                         android:layout_marginTop="8dp" />
                     <com.google.android.material.button.MaterialButton
@@ -371,6 +400,27 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="🍼 配方奶(ml)"
+                                android:textSize="13sp"
+                                android:textColor="@color/on_surface_variant" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:id="@+id/tvTodayBottleBreastCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="28sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/warm_orange" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🍶 瓶喂母乳(ml)"
                                 android:textSize="13sp"
                                 android:textColor="@color/on_surface_variant" />
                         </LinearLayout>

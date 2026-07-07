@@ -47,8 +47,12 @@ class TimerFragment : Fragment() {
         if (!savedCustomFormulaText.isNullOrEmpty()) {
             binding.etCustomFormula.setText(savedCustomFormulaText)
         }
-        if (savedIsBreast != null) {
-            if (savedIsBreast == true) binding.rbBreast.isChecked = true else if (savedIsBreast == false) binding.rbFormula.isChecked = true
+        if (savedFeedType != null) {
+            when (savedFeedType) {
+                "breast" -> binding.rbBreast.isChecked = true
+                "bottle_breast" -> binding.rbBottleBreast.isChecked = true
+                else -> binding.rbFormula.isChecked = true
+            }
         }
 
         setupTabs()
@@ -96,18 +100,30 @@ class TimerFragment : Fragment() {
         }
 
         binding.btnFeedNow.setOnClickListener {
-            val isBreast = binding.rbBreast.isChecked
-            val volume = if (!isBreast) binding.etVolume.text.toString().toIntOrNull() else null
-            viewModel.feedNow(isBreast, volume)
+            val feedType = when {
+                binding.rbBreast.isChecked -> "breast"
+                binding.rbBottleBreast.isChecked -> "bottle_breast"
+                else -> "formula"
+            }
+            val needsVolume = feedType != "breast"
+            val volume = if (needsVolume) binding.etVolume.text.toString().toIntOrNull() else null
+            viewModel.feedNow(feedType, volume)
             binding.etVolume.text?.clear()
         }
 
         binding.rbBreast.setOnCheckedChangeListener { _, checked ->
-            binding.etVolume.isEnabled = !checked
+            binding.etVolume.isEnabled = false
             if (checked) binding.etVolume.text?.clear()
         }
+        binding.rbBottleBreast.setOnCheckedChangeListener { _, checked ->
+            binding.etVolume.isEnabled = checked
+            if (checked) binding.etVolume.hint = "瓶喂母乳量 (ml)"
+        }
         binding.rbFormula.setOnCheckedChangeListener { _, checked ->
-            if (checked) binding.etVolume.isEnabled = true
+            if (checked) {
+                binding.etVolume.isEnabled = true
+                binding.etVolume.hint = "配方奶量 (ml)"
+            }
         }
 
         binding.btnSaveFormula.setOnClickListener {
@@ -132,10 +148,13 @@ class TimerFragment : Fragment() {
                     binding.tvTodayBreastCount.text = state.todayBreastCount.toString()
                     binding.tvTodayFormulaCount.text = state.todayFormulaCount.toString()
                     binding.tvTodayFormulaAmount.text = state.todayFormulaAmount.toString()
+                    binding.tvTodayBottleBreastCount.text = state.todayBottleBreastAmount.toString()
                     binding.tvSuggestedFormula.text = state.suggestedFormula
                     binding.tvGoalRemaining.text = state.formulaRemaining
                     binding.tvLastBreastTime.text = state.lastBreastTime
-                    binding.tvLastBreastDetail.text = "🤱 上次母乳 · ${state.lastBreastDetail}"
+                    binding.tvLastBreastDetail.text = "🤱 上次亲喂 · ${state.lastBreastDetail}"
+                    binding.tvLastBottleBreastTime.text = state.lastBottleBreastTime
+                    binding.tvLastBottleBreastDetail.text = "🍶 上次瓶喂母乳 · ${state.lastBottleBreastDetail}"
                     binding.tvLastFormulaTime.text = state.lastFormulaTime
                     binding.tvLastFormulaDetail.text = "🍼 上次配方奶 · ${state.lastFormulaDetail}"
                     binding.btnPause.text = if (state.isPaused) "▶️ 继续" else "⏸️ 暂停"
@@ -186,7 +205,11 @@ class TimerFragment : Fragment() {
         savedIntervalText = binding.etInterval.text?.toString()
         savedVolumeText = binding.etVolume.text?.toString()
         savedCustomFormulaText = binding.etCustomFormula.text?.toString()
-        savedIsBreast = binding.rbBreast.isChecked
+        savedFeedType = when {
+            binding.rbBreast.isChecked -> "breast"
+            binding.rbBottleBreast.isChecked -> "bottle_breast"
+            else -> "formula"
+        }
     }
 
     override fun onDestroyView() {
@@ -200,6 +223,6 @@ class TimerFragment : Fragment() {
         private var savedIntervalText: String? = null
         private var savedVolumeText: String? = null
         private var savedCustomFormulaText: String? = null
-        private var savedIsBreast: Boolean? = null
+        private var savedFeedType: String? = null
     }
 }

@@ -63,7 +63,11 @@ object ExportUtil {
 
         records.forEachIndexed { i, r ->
             val timeStr = sdf.format(Date(r.timestamp))
-            val typeLabel = if (r.feedType == "breast") "🤱 母乳" else "🍼 配方奶"
+            val typeLabel = when (r.feedType) {
+                "breast" -> "🤱 亲喂"
+                "bottle_breast" -> "🍶 瓶喂母乳"
+                else -> "🍼 配方奶"
+            }
             val volumeStr = if (r.volume != null) " | ${r.volume} ml" else ""
             val diffStr = r.diff?.let {
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(it)

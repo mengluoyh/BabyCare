@@ -1,7 +1,9 @@
-// BabyCare/app/src/main/java/com/babycare/ui/FeedingBreastFragment.kt
+// BabyCare/app/src/main/java/com/babycare/ui/FeedingBottleBreastFragment.kt
 package com.babycare.ui
 
 import android.app.AlertDialog
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,7 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
-import com.babycare.databinding.FragmentFeedingBreastBinding
+import com.babycare.databinding.FragmentFeedingBottleBreastBinding
 import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -20,11 +22,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
-    private var _binding: FragmentFeedingBreastBinding? = null
+class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
+    private var _binding: FragmentFeedingBottleBreastBinding? = null
     private val binding get() = _binding!!
     private val feedingDao by lazy { (requireActivity().application as BabyCareApp).database.feedingDao() }
-    private val adapter = BreastAdapter(
+    private val adapter = BottleBreastAdapter(
         onDelete = { record -> deleteRecord(record) },
         onEdit = { record -> showEditDialog(record) }
     )
@@ -33,7 +35,7 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
     private val pageSize = 4
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = FragmentFeedingBreastBinding.inflate(inflater, container, false)
+        _binding = FragmentFeedingBottleBreastBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -44,7 +46,7 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
 
         lifecycleScope.launch {
             feedingDao.getAll().collect { records ->
-                allRecords = records.filter { it.feedType == "breast" }
+                allRecords = records.filter { it.feedType == "bottle_breast" }
                 currentPage = 0
                 updateList()
             }
@@ -57,7 +59,10 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
         val pageRecords = if (allRecords.isEmpty()) emptyList() else allRecords.subList(start, end)
         adapter.submitList(pageRecords)
         binding.emptyView.visibility = if (allRecords.isEmpty()) View.VISIBLE else View.GONE
-        (parentFragment as? FeedingRecordsFragment)?.onPageChanged(currentPage, getTotalPages(), pageSize)
+        // Notify parent of page change
+        (parentFragment as? FeedingRecordsFragment)?.onPageChanged(
+            currentPage, getTotalPages(), pageSize
+        )
     }
 
     fun goToPage(page: Int) {
@@ -74,7 +79,7 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
     private fun deleteRecord(record: FeedingRecord) {
         AlertDialog.Builder(requireContext())
             .setTitle("删除确认")
-            .setMessage("确定删除此条母乳记录？")
+            .setMessage("确定删除此条瓶喂母乳记录？")
             .setPositiveButton("删除") { _, _ ->
                 lifecycleScope.launch {
                     feedingDao.softDelete(record.id, System.currentTimeMillis())
@@ -101,9 +106,14 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
         val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
         var editTimestamp = record.timestamp
 
-        rbBreast.isChecked = true
-        etVolume.isEnabled = false
-        etVolume.text?.clear()
+        // Set current values
+        when (record.feedType) {
+            "breast" -> rbBreast.isChecked = true
+            "bottle_breast" -> rbBottleBreast.isChecked = true
+            else -> rbFormula.isChecked = true
+        }
+        etVolume.setText(record.volume?.toString() ?: "")
+        etVolume.isEnabled = record.feedType != "breast"
         etDate.setText(DATE_FMT.format(Date(record.timestamp)))
         etTime.setText(TIME_FMT.format(Date(record.timestamp)))
 
@@ -172,10 +182,10 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
         _binding = null
     }
 
-    class BreastAdapter(
+    class BottleBreastAdapter(
         private val onDelete: (FeedingRecord) -> Unit,
         private val onEdit: (FeedingRecord) -> Unit
-    ) : ListAdapter<FeedingRecord, BreastAdapter.VH>(DiffCallback()) {
+    ) : ListAdapter<FeedingRecord, BottleBreastAdapter.VH>(DiffCallback()) {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val itemBinding = com.babycare.databinding.ItemRecordBinding.inflate(
@@ -192,7 +202,7 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: FeedingRecord) {
                 itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
-                itemBinding.tvDetail.text = "🤱 亲喂"
+                itemBinding.tvDetail.text = "🍶 瓶喂母乳 ${r.volume ?: 0} ml"
                 val diffStr = r.diff?.let {
                     val minutes = TimeUnit.MILLISECONDS.toMinutes(it)
                     val hours = minutes / 60

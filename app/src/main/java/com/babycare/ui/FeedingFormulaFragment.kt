@@ -20,11 +20,17 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class FeedingFormulaFragment : Fragment() {
+class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
     private var _binding: FragmentFeedingFormulaBinding? = null
     private val binding get() = _binding!!
     private val feedingDao by lazy { (requireActivity().application as BabyCareApp).database.feedingDao() }
-    private val adapter = FormulaAdapter { record -> deleteRecord(record) }
+    private val adapter = FormulaAdapter(
+        onDelete = { record -> deleteRecord(record) },
+        onEdit = { record -> showEditDialog(record) }
+    )
+    private var allRecords = listOf<FeedingRecord>()
+    private var currentPage = 0
+    private val pageSize = 4
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentFeedingFormulaBinding.inflate(inflater, container, false)
@@ -38,12 +44,32 @@ class FeedingFormulaFragment : Fragment() {
 
         lifecycleScope.launch {
             feedingDao.getAll().collect { records ->
-                val formula = records.filter { it.feedType == "formula" }
-                adapter.submitList(formula)
-                binding.emptyView.visibility = if (formula.isEmpty()) View.VISIBLE else View.GONE
+                allRecords = records.filter { it.feedType == "formula" }
+                currentPage = 0
+                updateList()
             }
         }
     }
+
+    private fun updateList() {
+        val start = currentPage * pageSize
+        val end = (start + pageSize).coerceAtMost(allRecords.size)
+        val pageRecords = if (allRecords.isEmpty()) emptyList() else allRecords.subList(start, end)
+        adapter.submitList(pageRecords)
+        binding.emptyView.visibility = if (allRecords.isEmpty()) View.VISIBLE else View.GONE
+        (parentFragment as? FeedingRecordsFragment)?.onPageChanged(currentPage, getTotalPages(), pageSize)
+    }
+
+    fun goToPage(page: Int) {
+        val total = getTotalPages()
+        if (page < 0 || page >= total) return
+        currentPage = page
+        updateList()
+    }
+
+    fun getCurrentPage() = currentPage
+    fun getTotalPages() = ((allRecords.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    fun getPageSize() = pageSize
 
     private fun deleteRecord(record: FeedingRecord) {
         AlertDialog.Builder(requireContext())
@@ -59,13 +85,96 @@ class FeedingFormulaFragment : Fragment() {
             .show()
     }
 
+    private fun showEditDialog(record: FeedingRecord) {
+        val builder = AlertDialog.Builder(requireContext())
+        val dialogView = LayoutInflater.from(requireContext()).inflate(
+            com.babycare.R.layout.dialog_edit_feeding, null
+        )
+        val etVolume = dialogView.findViewById<android.widget.EditText>(com.babycare.R.id.etEditVolume)
+        val etDate = dialogView.findViewById<android.widget.EditText>(com.babycare.R.id.etEditDate)
+        val etTime = dialogView.findViewById<android.widget.EditText>(com.babycare.R.id.etEditTime)
+        val rbBreast = dialogView.findViewById<android.widget.RadioButton>(com.babycare.R.id.rbEditBreast)
+        val rbBottleBreast = dialogView.findViewById<android.widget.RadioButton>(com.babycare.R.id.rbEditBottleBreast)
+        val rbFormula = dialogView.findViewById<android.widget.RadioButton>(com.babycare.R.id.rbEditFormula)
+
+        val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
+        var editTimestamp = record.timestamp
+
+        rbFormula.isChecked = true
+        etVolume.isEnabled = true
+        etVolume.setText(record.volume?.toString() ?: "")
+        etDate.setText(DATE_FMT.format(Date(record.timestamp)))
+        etTime.setText(TIME_FMT.format(Date(record.timestamp)))
+
+        rbBreast.setOnCheckedChangeListener { _, checked ->
+            etVolume.isEnabled = false
+            if (checked) etVolume.text?.clear()
+        }
+        rbBottleBreast.setOnCheckedChangeListener { _, checked ->
+            etVolume.isEnabled = checked
+        }
+        rbFormula.setOnCheckedChangeListener { _, checked ->
+            if (checked) etVolume.isEnabled = true
+        }
+
+        etDate.setOnClickListener {
+            val cal = Calendar.getInstance().apply { timeInMillis = editTimestamp }
+            DatePickerDialog(requireContext(), { _, y, m, d ->
+                cal.set(y, m, d, 12, 0, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                editTimestamp = cal.timeInMillis
+                etDate.setText(DATE_FMT.format(cal.time))
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+        }
+        etTime.setOnClickListener {
+            val cal = Calendar.getInstance().apply { timeInMillis = editTimestamp }
+            TimePickerDialog(requireContext(), { _, h, m ->
+                cal.set(Calendar.HOUR_OF_DAY, h)
+                cal.set(Calendar.MINUTE, m)
+                cal.set(Calendar.SECOND, 0)
+                editTimestamp = cal.timeInMillis
+                etTime.setText(TIME_FMT.format(cal.time))
+            }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
+        }
+
+        builder.setTitle("编辑喂养记录")
+            .setView(dialogView)
+            .setPositiveButton("保存") { _, _ ->
+                val feedType = when {
+                    rbBreast.isChecked -> "breast"
+                    rbBottleBreast.isChecked -> "bottle_breast"
+                    else -> "formula"
+                }
+                val needsVolume = feedType != "breast"
+                val volume = if (needsVolume) etVolume.text.toString().toIntOrNull() else null
+                if (needsVolume && volume == null) {
+                    Toast.makeText(requireContext(), "请输入奶量", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    val updated = record.copy(
+                        feedType = feedType,
+                        volume = volume,
+                        timestamp = editTimestamp,
+                        lastModified = System.currentTimeMillis()
+                    )
+                    feedingDao.upsert(updated)
+                    Toast.makeText(requireContext(), "✅ 已更新", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
     class FormulaAdapter(
-        private val onDelete: (FeedingRecord) -> Unit
+        private val onDelete: (FeedingRecord) -> Unit,
+        private val onEdit: (FeedingRecord) -> Unit
     ) : ListAdapter<FeedingRecord, FormulaAdapter.VH>(DiffCallback()) {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -91,6 +200,7 @@ class FeedingFormulaFragment : Fragment() {
                 } ?: ""
                 itemBinding.tvInterval.text = diffStr
                 itemBinding.btnDelete.setOnClickListener { onDelete(r) }
+                itemBinding.btnEdit.setOnClickListener { onEdit(r) }
             }
         }
 

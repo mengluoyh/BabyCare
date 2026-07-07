@@ -91,14 +91,14 @@ class VaccinationRecordsFragment : Fragment() {
                 visibility = View.GONE
             }.also { contentLayout.addView(it) }
 
-            // 添加按钮
+            // 下次疫苗接种按钮（原"+添加疫苗记录"改为"下次疫苗接种"）
             contentLayout.addView(MaterialButton(context).apply {
-                text = "➕ 添加疫苗记录"
+                text = "📅 下次疫苗接种"
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 ).also { it.setMargins(0, 12, 0, 0) }
-                setOnClickListener { showVaccineDialog(null) }
+                setOnClickListener { showNextVaccineDialog() }
             })
 
             // 记录卡片容器
@@ -224,13 +224,11 @@ class VaccinationRecordsFragment : Fragment() {
         val end = (start + pageSize).coerceAtMost(vaccineRecords.size)
         val pageRecords = if (vaccineRecords.isEmpty()) emptyList() else vaccineRecords.subList(start, end)
 
-        // 更新卡片
         cardContainer.removeAllViews()
         for (r in pageRecords) {
             cardContainer.addView(buildRecordCard(r))
         }
 
-        // 更新分页控件
         pageInfoText.text = "/ $totalPages 页"
         pageInput.setText("${currentPage + 1}")
         prevBtn.isEnabled = currentPage > 0
@@ -263,7 +261,7 @@ class VaccinationRecordsFragment : Fragment() {
             setBackgroundColor(ContextCompat.getColor(context, R.color.surface_variant))
         }
 
-        // 第1行：疫苗名称 + 接种日期
+        // 第1行：已接种标记 + 疫苗名称 + 接种日期
         val row1 = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -272,6 +270,18 @@ class VaccinationRecordsFragment : Fragment() {
             )
         }
         card.addView(row1)
+
+        // 是否已接种标记
+        if (r.isLocked) {
+            row1.addView(TextView(requireContext()).apply {
+                text = "✅ "
+                textSize = 16f
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            })
+        }
 
         row1.addView(TextView(requireContext()).apply {
             text = r.vaccineName
@@ -336,6 +346,19 @@ class VaccinationRecordsFragment : Fragment() {
         }
         card.addView(actions)
 
+        // 已接种按钮（在编辑按钮左边）
+        if (!r.isLocked) {
+            actions.addView(MaterialButton(requireContext()).apply {
+                text = "✅ 已接种"
+                textSize = 12f
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).also { it.setMargins(0, 0, 4, 0) }
+                setOnClickListener { markAsVaccinated(r) }
+            })
+        }
+
         actions.addView(MaterialButton(requireContext()).apply {
             text = "编辑"
             textSize = 12f
@@ -359,7 +382,78 @@ class VaccinationRecordsFragment : Fragment() {
         return card
     }
 
-    /** 添加/编辑疫苗记录对话框（移除了时间选择，只选日期） */
+    /** 点击"已接种"标记该记录 */
+    private fun markAsVaccinated(record: VaccinationRecord) {
+        lifecycleScope.launch {
+            dao.upsert(record.copy(isLocked = true, lastModified = System.currentTimeMillis()))
+            loadVaccines()
+            Toast.makeText(requireContext(), "✅ 已标记为已接种", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** "下次疫苗接种"对话框（简化：只需疫苗名称、下次接种日期、备注） */
+    private fun showNextVaccineDialog() {
+        val view = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 8)
+        }
+
+        val etName = EditText(requireContext()).apply {
+            hint = "疫苗名称 *"
+            setPadding(0, 8, 0, 8)
+        }
+        view.addView(etName)
+
+        val etNextDate = EditText(requireContext()).apply {
+            hint = "下次接种日期 *"
+            setPadding(0, 8, 0, 8)
+            isFocusable = false
+            isClickable = true
+            setOnClickListener {
+                val cal = Calendar.getInstance()
+                DatePickerDialog(requireContext(), { _, y, m, d ->
+                    cal.set(y, m, d, 12, 0, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                    setText(DATE_FMT.format(cal.time))
+                    tag = cal.timeInMillis
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+            }
+        }
+        view.addView(etNextDate)
+
+        val etNote = EditText(requireContext()).apply {
+            hint = "备注（可选）"
+            setPadding(0, 8, 0, 8)
+        }
+        view.addView(etNote)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("📅 下次疫苗接种")
+            .setView(view)
+            .setPositiveButton("保存") { _, _ ->
+                val name = etName.text.toString().trim()
+                val nextTs = etNextDate.tag as? Long
+                if (name.isEmpty() || nextTs == null) {
+                    Toast.makeText(requireContext(), "疫苗名称和接种日期不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    dao.upsert(VaccinationRecord(
+                        vaccineName = name,
+                        vaccinationTime = System.currentTimeMillis(),
+                        nextVaccinationTime = nextTs,
+                        nextVaccineName = name,
+                        note = etNote.text.toString().trim().ifEmpty { null }
+                    ))
+                    loadVaccines()
+                    Toast.makeText(requireContext(), "✅ 已添加", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 添加/编辑疫苗记录对话框（完整字段） */
     private fun showVaccineDialog(existing: VaccinationRecord?) {
         val isEdit = existing != null
         val view = LinearLayout(requireContext()).apply {
@@ -367,7 +461,6 @@ class VaccinationRecordsFragment : Fragment() {
             setPadding(24, 16, 24, 8)
         }
 
-        // 疫苗名称
         val etName = EditText(requireContext()).apply {
             hint = "疫苗名称 *"
             setText(existing?.vaccineName ?: "")
@@ -375,7 +468,6 @@ class VaccinationRecordsFragment : Fragment() {
         }
         view.addView(etName)
 
-        // 接种日期（仅日期选择，移除了时间）
         val etVaccinationDate = EditText(requireContext()).apply {
             hint = "接种日期 *"
             setText(existing?.vaccinationTime?.let { DATE_FMT.format(Date(it)) } ?: "")
@@ -396,7 +488,6 @@ class VaccinationRecordsFragment : Fragment() {
         }
         view.addView(etVaccinationDate)
 
-        // 下次接种日期
         val etNextDate = EditText(requireContext()).apply {
             hint = "下次接种日期（可选）"
             setText(existing?.nextVaccinationTime?.let { DATE_FMT.format(Date(it)) } ?: "")
@@ -417,7 +508,6 @@ class VaccinationRecordsFragment : Fragment() {
         }
         view.addView(etNextDate)
 
-        // 下次疫苗名称
         val etNextName = EditText(requireContext()).apply {
             hint = "下次疫苗名称（可选）"
             setText(existing?.nextVaccineName ?: "")
@@ -425,7 +515,6 @@ class VaccinationRecordsFragment : Fragment() {
         }
         view.addView(etNextName)
 
-        // 备注
         val etNote = EditText(requireContext()).apply {
             hint = "备注（可选）"
             setText(existing?.note ?: "")
@@ -433,7 +522,6 @@ class VaccinationRecordsFragment : Fragment() {
         }
         view.addView(etNote)
 
-        // 字体颜色选择
         var selectedColorHex: String? = existing?.fontColor
         view.addView(TextView(requireContext()).apply {
             text = "字体颜色:"
@@ -540,12 +628,13 @@ class VaccinationRecordsFragment : Fragment() {
             sb.appendLine()
 
             records.forEachIndexed { i, r ->
+                val vaccinated = if (r.isLocked) " ✅已接种" else ""
                 val nextStr = r.nextVaccinationTime?.let {
                     val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
                     " | 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
                 } ?: ""
                 val noteStr = if (!r.note.isNullOrBlank()) "\n   备注: ${r.note}" else ""
-                sb.appendLine("${i + 1}. ${r.vaccineName} | 接种日期: ${DATE_FMT.format(Date(r.vaccinationTime))}$nextStr$noteStr")
+                sb.appendLine("${i + 1}. ${r.vaccineName} | 接种日期: ${DATE_FMT.format(Date(r.vaccinationTime))}$vaccinated$nextStr$noteStr")
                 sb.appendLine()
             }
 

@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -26,7 +28,7 @@ class FeedingRecordsFragment : Fragment() {
         if (uri != null) importRecords(uri)
     }
 
-    private val TAGS = arrayOf("breast", "formula", "chart")
+    private val TAGS = arrayOf("breast", "bottle_breast", "formula", "chart")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentFeedingRecordsBinding.inflate(inflater, container, false)
@@ -37,13 +39,15 @@ class FeedingRecordsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupTabs()
+        setupPagination()
         binding.btnExport.setOnClickListener { exportRecords() }
         binding.btnImport.setOnClickListener { importLauncher.launch("application/json") }
     }
 
     private fun setupTabs() {
         with(binding.tabLayout) {
-            addTab(newTab().setText("🤱 母乳"))
+            addTab(newTab().setText("🤱 亲喂"))
+            addTab(newTab().setText("🍶 瓶喂母乳"))
             addTab(newTab().setText("🍼 配方奶"))
             addTab(newTab().setText("📊 趋势图"))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -65,8 +69,9 @@ class FeedingRecordsFragment : Fragment() {
         if (fragment == null) {
             fragment = when (position) {
                 0 -> FeedingBreastFragment()
-                1 -> FeedingFormulaFragment()
-                2 -> FeedingChartFragment()
+                1 -> FeedingBottleBreastFragment()
+                2 -> FeedingFormulaFragment()
+                3 -> FeedingChartFragment()
                 else -> FeedingBreastFragment()
             }
             childFragmentManager.beginTransaction()
@@ -80,6 +85,63 @@ class FeedingRecordsFragment : Fragment() {
         }
         ft.show(fragment)
         ft.commitNow()
+        // Update pagination for the active fragment
+        updatePaginationForActiveFragment()
+    }
+
+    private fun setupPagination() {
+        binding.btnPrevPage.setOnClickListener {
+            val active = getActiveFragment() ?: return@setOnClickListener
+            active.goToPage(active.getCurrentPage() - 1)
+        }
+        binding.btnNextPage.setOnClickListener {
+            val active = getActiveFragment() ?: return@setOnClickListener
+            active.goToPage(active.getCurrentPage() + 1)
+        }
+        binding.etPageInput.setOnEditorActionListener { _, _, _ ->
+            val page = binding.etPageInput.text.toString().toIntOrNull()
+            if (page != null) {
+                val active = getActiveFragment() ?: return@setOnEditorActionListener true
+                active.goToPage(page - 1)
+            }
+            true
+        }
+    }
+
+    private fun getActiveFragment(): FeedingRecordsFragment.Paginable? {
+        if (!isAdded) return null
+        for (tag in TAGS) {
+            val f = childFragmentManager.findFragmentByTag(tag)
+            if (f != null && f.isVisible && f is FeedingRecordsFragment.Paginable) {
+                return f as FeedingRecordsFragment.Paginable
+            }
+        }
+        return null
+    }
+
+    private fun updatePaginationForActiveFragment() {
+        val active = getActiveFragment()
+        if (active != null) {
+            onPageChanged(active.getCurrentPage(), active.getTotalPages(), active.getPageSize())
+        } else {
+            binding.paginationRow.visibility = View.GONE
+        }
+    }
+
+    fun onPageChanged(currentPage: Int, totalPages: Int, pageSize: Int) {
+        binding.paginationRow.visibility = if (totalPages > 1) View.VISIBLE else View.GONE
+        binding.tvPageInfo.text = "/ $totalPages 页"
+        binding.etPageInput.setText("${currentPage + 1}")
+        binding.btnPrevPage.isEnabled = currentPage > 0
+        binding.btnNextPage.isEnabled = currentPage < totalPages - 1
+    }
+
+    /** 分页接口，由子Fragment实现 */
+    interface Paginable {
+        fun goToPage(page: Int)
+        fun getCurrentPage(): Int
+        fun getTotalPages(): Int
+        fun getPageSize(): Int
     }
 
     private fun exportRecords() {

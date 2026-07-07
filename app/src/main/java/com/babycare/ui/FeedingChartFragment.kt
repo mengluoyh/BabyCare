@@ -48,26 +48,27 @@ class FeedingChartFragment : Fragment() {
             val feedings = feedingDao.getFeedingsBetween(start, end)
 
             val sdf = CHART_FMT
-            val dailyData = mutableMapOf<String, Pair<Int, Int>>()
+            val dailyData = mutableMapOf<String, Triple<Int, Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
                     timeInMillis = end
                     add(Calendar.DAY_OF_MONTH, -i)
                 }
-                dailyData[sdf.format(cal.time)] = Pair(0, 0)
+                dailyData[sdf.format(cal.time)] = Triple(0, 0, 0)
             }
             for (f in feedings) {
                 val key = sdf.format(Date(f.timestamp))
-                val (breast, formula) = dailyData[key] ?: Pair(0, 0)
-                if (f.feedType == "breast") {
-                    dailyData[key] = Pair(breast + 1, formula)
-                } else {
-                    dailyData[key] = Pair(breast, formula + (f.volume ?: 0))
+                val (breast, formula, bottleBreast) = dailyData[key] ?: Triple(0, 0, 0)
+                when (f.feedType) {
+                    "breast" -> dailyData[key] = Triple(breast + 1, formula, bottleBreast)
+                    "bottle_breast" -> dailyData[key] = Triple(breast, formula, bottleBreast + (f.volume ?: 0))
+                    else -> dailyData[key] = Triple(breast, formula + (f.volume ?: 0), bottleBreast)
                 }
             }
 
             val totalBreast = dailyData.values.sumOf { it.first }
             val totalFormula = dailyData.values.sumOf { it.second }
+            val totalBottleBreast = dailyData.values.sumOf { it.third }
 
             ChartDrawer.draw(ChartDrawer.ChartConfig(
                 context = requireContext(),
@@ -78,15 +79,18 @@ class FeedingChartFragment : Fragment() {
                 density = resources.displayMetrics.density,
                 barColor1 = android.graphics.Color.parseColor("#1976D2"),
                 barColor2 = android.graphics.Color.parseColor("#E65100"),
+                barColor3 = android.graphics.Color.parseColor("#388E3C"),
                 labelColor1 = android.graphics.Color.parseColor("#1976D2"),
                 labelColor2 = android.graphics.Color.parseColor("#E65100"),
-                legendFormat = "● 母乳 %d 次    ■ 配方奶 %d ml",
+                labelColor3 = android.graphics.Color.parseColor("#388E3C"),
+                legendFormat = "● 亲喂 %d 次    ■ 配方奶 %d ml    ▲ 瓶喂母乳 %d ml",
                 total1 = totalBreast,
                 total2 = totalFormula,
+                total3 = totalBottleBreast,
                 sideBySide = true
             ))
 
-            binding.tvChartLegend.text = "● 母乳 $totalBreast 次    ■ 配方奶 $totalFormula ml"
+            binding.tvChartLegend.text = "● 亲喂 $totalBreast 次    ■ 配方奶 $totalFormula ml    ▲ 瓶喂母乳 $totalBottleBreast ml"
         }
     }
 

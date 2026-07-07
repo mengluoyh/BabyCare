@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <RadioGroup
+        android:id="@+id/rgEditFeedType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton
+            android:id="@+id/rbEditBreast"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🤱 亲喂" />
+        <RadioButton
+            android:id="@+id/rbEditBottleBreast"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🍶 瓶喂母乳" />
+        <RadioButton
+            android:id="@+id/rbEditFormula"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🍼 配方奶" />
+    </RadioGroup>
+
+    <EditText
+        android:id="@+id/etEditVolume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="奶量 (ml)"
+        android:inputType="number"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/etEditDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="日期（点击选择）"
+        android:focusable="false"
+        android:clickable="true"
+        android:inputType="none"
+        android:layout_marginTop="8dp"
+        android:drawableStart="@android:drawable/ic_menu_day"
+        android:drawablePadding="6dp" />
+
+    <EditText
+        android:id="@+id/etEditTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="时间（点击选择）"
+        android:focusable="false"
+        android:clickable="true"
+        android:inputType="none"
+        android:layout_marginTop="4dp"
+        android:drawableStart="@android:drawable/ic_menu_myplaces"
+        android:drawablePadding="6dp" />
+</LinearLayout>

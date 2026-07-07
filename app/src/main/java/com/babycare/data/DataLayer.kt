@@ -62,17 +62,26 @@ interface FeedingDao {
     @Query("SELECT * FROM feeding_records WHERE isDeleted = 0 AND timestamp >= :start AND timestamp <= :end ORDER BY timestamp")
     fun getFeedingsBetweenFlow(start: Long, end: Long): Flow<List<FeedingRecord>>
 
-    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' AND timestamp >= :start AND timestamp <= :end")
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType IN ('breast','bottle_breast') AND timestamp >= :start AND timestamp <= :end")
     suspend fun getBreastCountBetween(start: Long, end: Long): Int
 
     @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaCountBetween(start: Long, end: Long): Int
 
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'bottle_breast' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getBottleBreastCountBetween(start: Long, end: Long): Int
+
     @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end")
     suspend fun getFormulaTotalBetween(start: Long, end: Long): Int
 
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'bottle_breast' AND timestamp >= :start AND timestamp <= :end")
+    suspend fun getBottleBreastTotalBetween(start: Long, end: Long): Int
+
     @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyFormulaLast7Days(start: Long, end: Long): List<Int>
+
+    @Query("SELECT COALESCE(SUM(volume), 0) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'bottle_breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    suspend fun getDailyBottleBreastLast7Days(start: Long, end: Long): List<Int>
 
     @Query("SELECT timestamp FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestBreastTimestamp(): Long?
@@ -80,8 +89,14 @@ interface FeedingDao {
     @Query("SELECT timestamp FROM feeding_records WHERE isDeleted = 0 AND feedType = 'formula' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestFormulaTimestamp(): Long?
 
-    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    @Query("SELECT timestamp FROM feeding_records WHERE isDeleted = 0 AND feedType = 'bottle_breast' ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestBottleBreastTimestamp(): Long?
+
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType IN ('breast','bottle_breast') AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
     suspend fun getDailyBreastCountLast7Days(start: Long, end: Long): List<Int>
+
+    @Query("SELECT COUNT(*) FROM feeding_records WHERE isDeleted = 0 AND feedType = 'bottle_breast' AND timestamp >= :start AND timestamp <= :end GROUP BY strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') ORDER BY timestamp DESC LIMIT 7")
+    suspend fun getDailyBottleBreastCountLast7Days(start: Long, end: Long): List<Int>
 
     @Insert
     suspend fun insert(record: FeedingRecord)

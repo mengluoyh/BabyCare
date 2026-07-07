@@ -41,11 +41,18 @@ class CustomRecordFragment : Fragment() {
 
     private fun setupUI() {
         binding.rbCustomBreast.setOnCheckedChangeListener { _, checked ->
-            binding.etCustomVolume.isEnabled = !checked
+            binding.etCustomVolume.isEnabled = false
             if (checked) binding.etCustomVolume.text?.clear()
         }
+        binding.rbCustomBottleBreast.setOnCheckedChangeListener { _, checked ->
+            binding.etCustomVolume.isEnabled = checked
+            if (checked) binding.etCustomVolume.hint = "瓶喂母乳量 (ml)"
+        }
         binding.rbCustomFormula.setOnCheckedChangeListener { _, checked ->
-            if (checked) binding.etCustomVolume.isEnabled = true
+            if (checked) {
+                binding.etCustomVolume.isEnabled = true
+                binding.etCustomVolume.hint = "配方奶量 (ml)"
+            }
         }
 
         // 初始化日期/时间为当前时间
@@ -80,11 +87,15 @@ class CustomRecordFragment : Fragment() {
         }
 
         binding.btnSaveCustomRecord.setOnClickListener {
-            val isBreast = binding.rbCustomBreast.isChecked
-            val feedType = if (isBreast) "breast" else "formula"
-            val volume = if (!isBreast) binding.etCustomVolume.text.toString().toIntOrNull() else null
-            if (!isBreast && volume == null) {
-                Toast.makeText(requireContext(), "请输入配方奶量", Toast.LENGTH_SHORT).show()
+            val feedType = when {
+                binding.rbCustomBreast.isChecked -> "breast"
+                binding.rbCustomBottleBreast.isChecked -> "bottle_breast"
+                else -> "formula"
+            }
+            val needsVolume = feedType != "breast"
+            val volume = if (needsVolume) binding.etCustomVolume.text.toString().toIntOrNull() else null
+            if (needsVolume && volume == null) {
+                Toast.makeText(requireContext(), "请输入奶量", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             saveFeedingRecord(feedType, volume)
@@ -98,13 +109,18 @@ class CustomRecordFragment : Fragment() {
             val record = FeedingRecord(
                 type = "manual",
                 feedType = feedType,
-                volume = if (feedType == "formula") volume else null,
+                volume = if (feedType != "breast") volume else null,
                 timestamp = selectedTimestamp,
                 diff = diff,
                 lastModified = System.currentTimeMillis()
             )
             feedingDao.insert(record)
-            Toast.makeText(requireContext(), "补录成功：${if (feedType == "breast") "母乳" else "配方奶 ${volume}ml"}", Toast.LENGTH_SHORT).show()
+            val label = when (feedType) {
+                "breast" -> "亲喂"
+                "bottle_breast" -> "瓶喂母乳 ${volume}ml"
+                else -> "配方奶 ${volume}ml"
+            }
+            Toast.makeText(requireContext(), "补录成功：$label", Toast.LENGTH_SHORT).show()
             binding.etCustomVolume.text?.clear()
         }
     }

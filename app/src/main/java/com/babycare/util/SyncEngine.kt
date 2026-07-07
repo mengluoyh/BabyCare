@@ -56,6 +56,11 @@ object SyncEngine {
 
     // ── 同步入口 ──
 
+    /** 最大重试次数 */
+    private const val MAX_RETRIES = 3
+    /** 批量处理每批最大记录数 */
+    private const val BATCH_SIZE = 50
+
     suspend fun sync(context: Context): Result<SyncSummary> = withContext(Dispatchers.IO) {
         try {
             val config = WebDavManager.loadConfig(context)
@@ -69,19 +74,41 @@ object SyncEngine {
             val now = System.currentTimeMillis()
             val errors = mutableListOf<String>()
 
-            // 1. 推送本地增量
-            val pushed = pushLocalChanges(context, config, deviceId, lastSync)
+            // 1. 推送本地增量（带重试）
+            val pushed = retryOnFailure(MAX_RETRIES) {
+                pushLocalChanges(context, config, deviceId, lastSync)
+            }
 
-            // 2. 拉取远程增量并合并
-            val pulled = pullRemoteChanges(context, config, deviceId, lastSync)
+            // 2. 拉取远程增量并合并（带重试）
+            val pulled = retryOnFailure(MAX_RETRIES) {
+                pullRemoteChanges(context, config, deviceId, lastSync)
+            }
 
             // 3. 记录同步时间
             setLastSyncTime(context, now)
 
             Result.success(SyncSummary(pushed = pushed, pulled = pulled, errors = errors))
         } catch (e: Exception) {
+            android.util.Log.e("SyncEngine", "同步失败", e)
             Result.failure(e)
         }
+    }
+
+    /** 带重试的异步操作 */
+    private suspend fun <T> retryOnFailure(maxRetries: Int, block: suspend () -> T): T {
+        var lastException: Exception? = null
+        for (attempt in 1..maxRetries) {
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                android.util.Log.w("SyncEngine", "操作失败 (尝试 $attempt/$maxRetries): ${e.message}")
+                if (attempt < maxRetries) {
+                    kotlinx.coroutines.delay(1000L * attempt) // 指数退避
+                }
+            }
+        }
+        throw lastException ?: Exception("重试耗尽")
     }
 
     // ── Push：上传本地增量 ──

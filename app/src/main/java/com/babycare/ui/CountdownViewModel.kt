@@ -82,15 +82,15 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         startCountdown()
     }
 
-    /** 手动记录喂养（母乳/配方奶均重置倒计时） */
-    fun feedNow(isBreast: Boolean, volume: Int?) {
+    /** 手动记录喂养（亲喂/瓶喂母乳/配方奶均重置倒计时） */
+    fun feedNow(feedType: String, volume: Int?) {
         viewModelScope.launch {
             val prev = feedingDao.getLatest()
             val diff = prev?.timestamp?.let { System.currentTimeMillis() - it }
             val record = FeedingRecord(
                 type = "manual",
-                feedType = if (isBreast) "breast" else "formula",
-                volume = if (!isBreast) volume else null,
+                feedType = feedType,
+                volume = if (feedType != "breast") volume else null,
                 timestamp = System.currentTimeMillis(),
                 diff = diff
             )
@@ -100,7 +100,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             // 停止音频播报并关闭弹窗
             stopAudio()
             _events.emit(CountdownEvent.DismissAlert)
-            // 重置倒计时（无论母乳还是配方奶）
+            // 重置倒计时（均重置）
             cancelTimer()
             nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
             settings.saveNextFeedTime(nextFeedTime)
@@ -178,6 +178,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             val breastCount = feedingDao.getBreastCountBetween(todayStart, todayEnd)
             val formulaTotal = feedingDao.getFormulaTotalBetween(todayStart, todayEnd)
             val formulaCount = feedingDao.getFormulaCountBetween(todayStart, todayEnd)
+            val bottleBreastCount = feedingDao.getBottleBreastCountBetween(todayStart, todayEnd)
+            val bottleBreastAmount = feedingDao.getBottleBreastTotalBetween(todayStart, todayEnd)
 
             // 计算配方奶差额
             val suggestedInt = settings.getCustomFormulaSuggestion().let {
@@ -198,6 +200,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     todayBreastCount = breastCount,
                     todayFormulaAmount = formulaTotal,
                     todayFormulaCount = formulaCount,
+                    todayBottleBreastCount = bottleBreastCount,
+                    todayBottleBreastAmount = bottleBreastAmount,
                     formulaRemaining = remaining
                 )
             }
@@ -211,16 +215,23 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         timeSinceJob?.cancel()
         timeSinceJob = viewModelScope.launch {
             while (true) {
-                val (breastTs, formulaTs) = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    Pair(
+                val (breastTs, formulaTs, bottleBreastTs) = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    Triple(
                         feedingDao.getLatestBreastTimestamp() ?: 0L,
-                        feedingDao.getLatestFormulaTimestamp() ?: 0L
+                        feedingDao.getLatestFormulaTimestamp() ?: 0L,
+                        feedingDao.getLatestBottleBreastTimestamp() ?: 0L
                     )
                 }
                 val now = System.currentTimeMillis()
                 val breastTimeStr = if (breastTs > 0) TIME_FMT.format(Date(breastTs)) else "--:--"
                 val breastDetail = if (breastTs > 0) {
                     val elapsed = now - breastTs
+                    formatDurationBrief(elapsed)
+                } else "暂无记录"
+
+                val bottleBreastTimeStr = if (bottleBreastTs > 0) TIME_FMT.format(Date(bottleBreastTs)) else "--:--"
+                val bottleBreastDetail = if (bottleBreastTs > 0) {
+                    val elapsed = now - bottleBreastTs
                     formatDurationBrief(elapsed)
                 } else "暂无记录"
 
@@ -234,6 +245,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
                     copy(
                         lastBreastTime = breastTimeStr,
                         lastBreastDetail = breastDetail,
+                        lastBottleBreastTime = bottleBreastTimeStr,
+                        lastBottleBreastDetail = bottleBreastDetail,
                         lastFormulaTime = formulaTimeStr,
                         lastFormulaDetail = formulaDetail
                     )
@@ -456,10 +469,14 @@ data class CountdownUiState(
     val todayBreastCount: Int = 0,
     val todayFormulaAmount: Int = 0,
     val todayFormulaCount: Int = 0,
+    val todayBottleBreastCount: Int = 0,
+    val todayBottleBreastAmount: Int = 0,
     val suggestedFormula: String = "-- ml",
     val formulaRemaining: String = "",
     val lastBreastTime: String = "--:--",
     val lastBreastDetail: String = "暂无记录",
+    val lastBottleBreastTime: String = "--:--",
+    val lastBottleBreastDetail: String = "暂无记录",
     val lastFormulaTime: String = "--:--",
     val lastFormulaDetail: String = "暂无记录"
 )

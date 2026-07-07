@@ -23,30 +23,35 @@ object ChartDrawer {
         val context: Context,
         val chartContainer: ViewGroup,
         val columnsContainer: ViewGroup,
-        val dailyData: Map<String, Pair<Int, Int>>,
+        val dailyData: Map<String, Triple<Int, Int, Int>>,
         val chartDays: Int,
         val density: Float,
         /** 左/底部柱子颜色（argb） */
         val barColor1: Int,
-        /** 右/顶部柱子颜色（argb） */
+        /** 中/顶部柱子颜色（argb） */
         val barColor2: Int,
+        /** 右柱子颜色（argb，第三系列） */
+        val barColor3: Int = barColor2,
         /** 左/底部柱子数值标签颜色 */
         val labelColor1: Int,
-        /** 右/顶部柱子数值标签颜色 */
+        /** 中/顶部柱子数值标签颜色 */
         val labelColor2: Int,
-        /** 图例文字，可用 %1\$d %2\$d 占位符接收 total1 total2 */
+        /** 右柱子数值标签颜色（第三系列） */
+        val labelColor3: Int = labelColor2,
+        /** 图例文字，可用 %1\$d %2\$d %3\$d 占位符接收 total1 total2 total3 */
         val legendFormat: String,
         val total1: Int,
         val total2: Int,
-        /** true=左右并排，false=上下堆叠（默认false） */
+        val total3: Int = 0,
+        /** true=三列并排，false=上下堆叠（默认false） */
         val sideBySide: Boolean = false
     )
 
     fun draw(config: ChartConfig) {
         val (ctx, chartContainer, columnsContainer, dailyData, chartDays, density,
-             barC1, barC2, labelC1, labelC2, legendFmt, total1, total2, sideBySide) = config
+             barC1, barC2, barC3, labelC1, labelC2, labelC3, legendFmt, total1, total2, total3, sideBySide) = config
 
-        val maxVal = dailyData.values.maxOfOrNull { maxOf(it.first, it.second) } ?: 1
+        val maxVal = dailyData.values.maxOfOrNull { maxOf(it.first, maxOf(it.second, it.third)) } ?: 1
         val barWidth = (Math.max(8, 24 - chartDays)).toInt() * density.toInt()
         val chartHeight = chartContainer.height.coerceAtLeast(100)
         val barAreaHeight = (chartHeight * 0.75f).toInt()
@@ -89,7 +94,7 @@ object ChartDrawer {
 
         // ─── 柱状图 ───
         for ((date, data) in dailyData) {
-            val (v1, v2) = data  // v1 = 左/底部柱子, v2 = 右/顶部柱子
+            val (v1, v2, v3) = data  // v1 = 左/底部柱子(亲喂次数), v2 = 中(配方奶ml), v3 = 右(瓶喂母乳ml)
             val col = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -98,7 +103,7 @@ object ChartDrawer {
             }
 
             if (sideBySide) {
-                // ─── 左右并排模式，每根柱子带独立数值标签 ───
+                // ─── 三列并排模式，每根柱子带独立数值标签 ───
                 val row = LinearLayout(ctx).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.BOTTOM
@@ -108,7 +113,7 @@ object ChartDrawer {
                     )
                 }
 
-                // 左柱（分类1）
+                // 左柱（分类1：亲喂次数）
                 val leftCol = LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_HORIZONTAL
@@ -135,14 +140,14 @@ object ChartDrawer {
                 leftCol.addView(bar1)
                 row.addView(leftCol)
 
-                // 右柱（分类2）
-                val rightCol = LinearLayout(ctx).apply {
+                // 中柱（分类2：配方奶ml）
+                val midCol = LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_HORIZONTAL
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 }
                 if (v2 > 0) {
-                    rightCol.addView(TextView(ctx).apply {
+                    midCol.addView(TextView(ctx).apply {
                         text = v2.toString()
                         textSize = 8f
                         gravity = Gravity.CENTER
@@ -159,13 +164,40 @@ object ChartDrawer {
                         cornerRadius = 4f * density
                     }
                 }
-                rightCol.addView(bar2)
+                midCol.addView(bar2)
+                row.addView(midCol)
+
+                // 右柱（分类3：瓶喂母乳ml）
+                val rightCol = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                if (v3 > 0) {
+                    rightCol.addView(TextView(ctx).apply {
+                        text = v3.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC3)
+                    })
+                }
+                val bar3 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v3.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, h.coerceAtLeast(2)
+                    )
+                    background = GradientDrawable().apply {
+                        setColor(barC3)
+                        cornerRadius = 4f * density
+                    }
+                }
+                rightCol.addView(bar3)
                 row.addView(rightCol)
 
                 col.addView(row)
             } else {
-                // ─── 上下堆叠模式（原逻辑） ───
-                // 底部柱子（分类1）
+                // ─── 上下堆叠模式（三系列堆叠） ───
+                // 最底部柱子（分类1：亲喂次数）
                 val bar1 = View(ctx).apply {
                     val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
                     layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
@@ -174,7 +206,7 @@ object ChartDrawer {
                         cornerRadius = 4f * density
                     }
                 }
-                // 顶部柱子（分类2）
+                // 中部柱子（分类2：配方奶ml）
                 val bar2 = View(ctx).apply {
                     val h = if (maxVal > 0) (v2.toFloat() / maxVal * barAreaHeight).toInt() else 0
                     layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
@@ -183,8 +215,25 @@ object ChartDrawer {
                         cornerRadius = 4f * density
                     }
                 }
+                // 顶部柱子（分类3：瓶喂母乳ml）
+                val bar3 = View(ctx).apply {
+                    val h = if (maxVal > 0) (v3.toFloat() / maxVal * barAreaHeight).toInt() else 0
+                    layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))
+                    background = GradientDrawable().apply {
+                        setColor(barC3)
+                        cornerRadius = 4f * density
+                    }
+                }
 
-                // 数值标签（从上往下加：先加顶部标签，再加底部标签）
+                // 数值标签（从上往下加：先加顶部标签，再加中部、底部标签）
+                if (v3 > 0) {
+                    col.addView(TextView(ctx).apply {
+                        text = v3.toString()
+                        textSize = 8f
+                        gravity = Gravity.CENTER
+                        setTextColor(labelC3)
+                    })
+                }
                 if (v2 > 0) {
                     col.addView(TextView(ctx).apply {
                         text = v2.toString()
@@ -204,6 +253,7 @@ object ChartDrawer {
 
                 col.addView(bar1)
                 col.addView(bar2)
+                col.addView(bar3)
             }
 
             // 日期标签
