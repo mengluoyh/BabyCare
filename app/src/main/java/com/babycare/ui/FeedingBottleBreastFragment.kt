@@ -22,7 +22,7 @@ import androidx.recyclerview.widget.ListAdapter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
@@ -105,8 +105,8 @@ class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable
         val rbBottleBreast = dialogView.findViewById<android.widget.RadioButton>(com.babycare.R.id.rbEditBottleBreast)
         val rbFormula = dialogView.findViewById<android.widget.RadioButton>(com.babycare.R.id.rbEditFormula)
 
-        val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault())
+        val TIME_FMT = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
         var editTimestamp = record.timestamp
 
         // ⭐ 先设 listener，再设初始值，确保初始勾选触发回调
@@ -132,8 +132,8 @@ class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable
             else -> rbFormula.isChecked = true
         }
         etVolume.setText(record.volume?.toString() ?: "")
-        etDate.setText(DATE_FMT.format(Date(record.timestamp)))
-        etTime.setText(TIME_FMT.format(Date(record.timestamp)))
+        etDate.setText(DATE_FMT.format(Instant.ofEpochMilli(record.timestamp)))
+        etTime.setText(TIME_FMT.format(Instant.ofEpochMilli(record.timestamp)))
 
         etDate.setOnClickListener {
             val cal = Calendar.getInstance().apply { timeInMillis = editTimestamp }
@@ -141,7 +141,7 @@ class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable
                 cal.set(y, m, d, 12, 0, 0)
                 cal.set(Calendar.MILLISECOND, 0)
                 editTimestamp = cal.timeInMillis
-                etDate.setText(DATE_FMT.format(cal.time))
+                etDate.setText(DATE_FMT.format(cal.toInstant()))
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
         etTime.setOnClickListener {
@@ -151,7 +151,7 @@ class FeedingBottleBreastFragment : Fragment(), FeedingRecordsFragment.Paginable
                 cal.set(Calendar.MINUTE, m)
                 cal.set(Calendar.SECOND, 0)
                 editTimestamp = cal.timeInMillis
-                etTime.setText(TIME_FMT.format(cal.time))
+                etTime.setText(TIME_FMT.format(cal.toInstant()))
             }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
         }
 

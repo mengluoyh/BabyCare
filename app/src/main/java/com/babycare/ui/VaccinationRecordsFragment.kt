@@ -25,8 +25,10 @@ import com.babycare.util.Constants
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 class VaccinationRecordsFragment : Fragment() {
 
@@ -43,7 +45,7 @@ class VaccinationRecordsFragment : Fragment() {
     private lateinit var cardContainer: LinearLayout
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private val dao get() = (requireActivity().application as BabyCareApp).database.vaccineDao()
-    private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault())
 
     companion object {
         private val PRESET_COLORS = listOf(
@@ -296,7 +298,7 @@ class VaccinationRecordsFragment : Fragment() {
         })
 
         row1.addView(TextView(requireContext()).apply {
-            text = DATE_FMT.format(Date(r.vaccinationTime))
+            text = DATE_FMT.format(Instant.ofEpochMilli(r.vaccinationTime))
             textSize = 14f
             gravity = Gravity.END
             layoutParams = LinearLayout.LayoutParams(
@@ -310,7 +312,7 @@ class VaccinationRecordsFragment : Fragment() {
         if (r.nextVaccinationTime != null) {
             val nextName = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
             card.addView(TextView(requireContext()).apply {
-                text = "下次接种${nextName}: ${DATE_FMT.format(Date(r.nextVaccinationTime))}"
+                text = "下次接种${nextName}: ${DATE_FMT.format(Instant.ofEpochMilli(r.nextVaccinationTime))}"
                 textSize = 13f
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -414,7 +416,7 @@ class VaccinationRecordsFragment : Fragment() {
                 DatePickerDialog(requireContext(), { _, y, m, d ->
                     cal.set(y, m, d, 12, 0, 0)
                     cal.set(Calendar.MILLISECOND, 0)
-                    setText(DATE_FMT.format(cal.time))
+                    setText(DATE_FMT.format(cal.toInstant()))
                     tag = cal.timeInMillis
                 }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
             }
@@ -470,7 +472,7 @@ class VaccinationRecordsFragment : Fragment() {
 
         val etVaccinationDate = EditText(requireContext()).apply {
             hint = "接种日期 *"
-            setText(existing?.vaccinationTime?.let { DATE_FMT.format(Date(it)) } ?: "")
+            setText(existing?.vaccinationTime?.let { DATE_FMT.format(Instant.ofEpochMilli(it)) } ?: "")
             setPadding(0, 8, 0, 8)
             isFocusable = false
             isClickable = true
@@ -480,7 +482,7 @@ class VaccinationRecordsFragment : Fragment() {
                 DatePickerDialog(requireContext(), { _, y, m, d ->
                     cal.set(y, m, d, 12, 0, 0)
                     cal.set(Calendar.MILLISECOND, 0)
-                    setText(DATE_FMT.format(cal.time))
+                    setText(DATE_FMT.format(cal.toInstant()))
                     tag = cal.timeInMillis
                 }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
             }
@@ -490,7 +492,7 @@ class VaccinationRecordsFragment : Fragment() {
 
         val etNextDate = EditText(requireContext()).apply {
             hint = "下次接种日期（可选）"
-            setText(existing?.nextVaccinationTime?.let { DATE_FMT.format(Date(it)) } ?: "")
+            setText(existing?.nextVaccinationTime?.let { DATE_FMT.format(Instant.ofEpochMilli(it)) } ?: "")
             setPadding(0, 8, 0, 8)
             isFocusable = false
             isClickable = true
@@ -500,7 +502,7 @@ class VaccinationRecordsFragment : Fragment() {
                 DatePickerDialog(requireContext(), { _, y, m, d ->
                     cal.set(y, m, d, 12, 0, 0)
                     cal.set(Calendar.MILLISECOND, 0)
-                    setText(DATE_FMT.format(cal.time))
+                    setText(DATE_FMT.format(cal.toInstant()))
                     tag = cal.timeInMillis
                 }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
             }
@@ -570,14 +572,14 @@ class VaccinationRecordsFragment : Fragment() {
                     return@setPositiveButton
                 }
                 val parsedTime = (etVaccinationDate.tag as? Long)
-                    ?: DATE_FMT.parse(dateText)?.time
+                    ?: DATE_FMT.parse(dateText, Instant::from).toEpochMilli()
                 if (parsedTime == null || parsedTime <= 0) {
                     Toast.makeText(requireContext(), "接种日期无效", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val nextTime = etNextDate.tag as? Long
                     ?: etNextDate.text.toString().trim().let {
-                        if (it.isNotEmpty()) DATE_FMT.parse(it)?.time else null
+                        if (it.isNotEmpty()) DATE_FMT.parse(it, Instant::from).toEpochMilli() else null
                     }
                 lifecycleScope.launch {
                     dao.upsert(VaccinationRecord(
@@ -623,7 +625,7 @@ class VaccinationRecordsFragment : Fragment() {
             }
             val sb = StringBuilder()
             sb.appendLine("========== 疫苗接种记录导出 ==========")
-            sb.appendLine("导出时间：${DATE_FMT.format(Date())}")
+            sb.appendLine("导出时间：${DATE_FMT.format(Instant.now())}")
             sb.appendLine("共 ${records.size} 条记录")
             sb.appendLine()
 
@@ -631,10 +633,10 @@ class VaccinationRecordsFragment : Fragment() {
                 val vaccinated = if (r.isLocked) " ✅已接种" else ""
                 val nextStr = r.nextVaccinationTime?.let {
                     val nameStr = if (!r.nextVaccineName.isNullOrBlank()) " ${r.nextVaccineName}" else ""
-                    " | 下次${nameStr}: ${DATE_FMT.format(Date(it))}"
+                    " | 下次${nameStr}: ${DATE_FMT.format(Instant.ofEpochMilli(it))}"
                 } ?: ""
                 val noteStr = if (!r.note.isNullOrBlank()) "\n   备注: ${r.note}" else ""
-                sb.appendLine("${i + 1}. ${r.vaccineName} | 接种日期: ${DATE_FMT.format(Date(r.vaccinationTime))}$vaccinated$nextStr$noteStr")
+                sb.appendLine("${i + 1}. ${r.vaccineName} | 接种日期: ${DATE_FMT.format(Instant.ofEpochMilli(r.vaccinationTime))}$vaccinated$nextStr$noteStr")
                 sb.appendLine()
             }
 

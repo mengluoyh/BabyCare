@@ -8,8 +8,9 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * 统一备份管理器：仅本地备份，全协程实现
@@ -75,7 +76,7 @@ object BackupManager {
         if (!dir.exists()) dir.mkdirs()
 
         val json = Gson().toJson(data)
-        val filename = "${Constants.BACKUP_PREFIX}${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}${Constants.BACKUP_SUFFIX}"
+        val filename = "${Constants.BACKUP_PREFIX}${DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now())}${Constants.BACKUP_SUFFIX}"
         val file = File(dir, filename)
         file.writeText(json)
         return file

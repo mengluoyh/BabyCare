@@ -15,8 +15,10 @@ import com.babycare.data.FeedingRecord
 import com.babycare.databinding.FragmentCustomRecordBinding
 import com.babycare.util.Constants
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 class CustomRecordFragment : Fragment() {
     private var _binding: FragmentCustomRecordBinding? = null
@@ -24,8 +26,8 @@ class CustomRecordFragment : Fragment() {
     private val feedingDao by lazy {
         (requireActivity().application as BabyCareApp).database.feedingDao()
     }
-    private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault())
+    private val TIME_FMT = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
     /** 用户选择的补录时间戳 */
     private var selectedTimestamp: Long = System.currentTimeMillis()
@@ -63,8 +65,8 @@ class CustomRecordFragment : Fragment() {
         // 初始化日期/时间为当前时间
         val now = Calendar.getInstance()
         selectedTimestamp = now.timeInMillis
-        binding.etCustomDate.setText(DATE_FMT.format(now.time))
-        binding.etCustomTime.setText(TIME_FMT.format(now.time))
+        binding.etCustomDate.setText(DATE_FMT.format(now.toInstant()))
+        binding.etCustomTime.setText(TIME_FMT.format(now.toInstant()))
 
         // 日期选择器
         binding.etCustomDate.setOnClickListener {
@@ -74,7 +76,7 @@ class CustomRecordFragment : Fragment() {
                 cal.set(Calendar.MONTH, m)
                 cal.set(Calendar.DAY_OF_MONTH, d)
                 selectedTimestamp = cal.timeInMillis
-                binding.etCustomDate.setText(DATE_FMT.format(cal.time))
+                binding.etCustomDate.setText(DATE_FMT.format(cal.toInstant()))
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
 
@@ -87,7 +89,7 @@ class CustomRecordFragment : Fragment() {
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
                 selectedTimestamp = cal.timeInMillis
-                binding.etCustomTime.setText(TIME_FMT.format(cal.time))
+                binding.etCustomTime.setText(TIME_FMT.format(cal.toInstant()))
             }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
         }
 

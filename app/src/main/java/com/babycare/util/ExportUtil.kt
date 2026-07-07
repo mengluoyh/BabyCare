@@ -9,8 +9,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.io.FileNotFoundException
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 object ExportUtil {
@@ -54,15 +55,15 @@ object ExportUtil {
 
     /** 导出喂养记录为可读文本 */
     fun exportFeedingRecordsText(context: Context, records: List<FeedingRecord>): File? {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
         val sb = StringBuilder()
         sb.appendLine("========== 喂养记录导出 ==========")
-        sb.appendLine("导出时间：${sdf.format(Date())}")
+        sb.appendLine("导出时间：${fmt.format(Instant.now())}")
         sb.appendLine("共 ${records.size} 条记录")
         sb.appendLine()
 
         records.forEachIndexed { i, r ->
-            val timeStr = sdf.format(Date(r.timestamp))
+            val timeStr = fmt.format(Instant.ofEpochMilli(r.timestamp))
             val typeLabel = when (r.feedType) {
                 "breast" -> "🤱 亲喂"
                 "bottle_breast" -> "🍶 瓶喂母乳"
@@ -85,15 +86,15 @@ object ExportUtil {
 
     /** 导出排泄记录为可读文本 */
     fun exportExcreteRecordsText(context: Context, records: List<ExcreteRecord>): File? {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
         val sb = StringBuilder()
         sb.appendLine("========== 排泄记录导出 ==========")
-        sb.appendLine("导出时间：${sdf.format(Date())}")
+        sb.appendLine("导出时间：${fmt.format(Instant.now())}")
         sb.appendLine("共 ${records.size} 条记录")
         sb.appendLine()
 
         records.forEachIndexed { i, r ->
-            val timeStr = sdf.format(Date(r.timestamp))
+            val timeStr = fmt.format(Instant.ofEpochMilli(r.timestamp))
             val typeLabel = when (r.type) {
                 "pee" -> "💧 小便"
                 else -> {

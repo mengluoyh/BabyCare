@@ -10,8 +10,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 /**
  * WebDAV 备份管理：通过 HTTP PUT/GET 将备份文件同步到远程 WebDAV 服务器。
@@ -33,7 +35,7 @@ object WebDavManager {
 
             val data = fetchAllData()
             val json = Gson().toJson(data)
-            val filename = "babycare_backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json"
+            val filename = "babycare_backup_${DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now())}.json"
             val baseUrl = config.url.trimEnd('/')
             val targetUrl = "$baseUrl/$BACKUP_DIR/$filename"
 

@@ -21,8 +21,6 @@ import com.babycare.util.WebDavManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.*
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -325,8 +323,9 @@ class SettingsFragment : Fragment() {
     private fun updateLastSyncDisplay() {
         val lastSync = SyncEngine.getLastSyncTime(requireContext())
         binding.tvWebDavStatus.text = if (lastSync > 0) {
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            "上次同步: ${sdf.format(Date(lastSync))}"
+            val fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                .withZone(java.time.ZoneId.systemDefault())
+            "上次同步: ${fmt.format(java.time.Instant.ofEpochMilli(lastSync))}"
         } else {
             "尚未同步"
         }
