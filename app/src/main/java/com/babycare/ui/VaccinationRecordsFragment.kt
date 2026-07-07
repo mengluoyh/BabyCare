@@ -180,7 +180,7 @@ class VaccinationRecordsFragment : Fragment() {
                     setOnClickListener { exportVaccineRecords() }
                 })
             })
-        }
+        })
     }
     return swipeRefresh
 }
