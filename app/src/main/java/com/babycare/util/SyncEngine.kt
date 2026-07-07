@@ -74,6 +74,9 @@ object SyncEngine {
             val now = System.currentTimeMillis()
             val errors = mutableListOf<String>()
 
+            // 确保远程 sync 目录存在（幂等）
+            ensureSyncDir(config)
+
             // 1. 推送本地增量（带重试）
             val pushed = retryOnFailure(MAX_RETRIES) {
                 pushLocalChanges(context, config, deviceId, lastSync)
@@ -324,6 +327,25 @@ object SyncEngine {
     }
 
     // ── 工具方法 ──
+
+    /** 在 WebDAV 服务器上创建 sync 目录（MKCOL），目录已存在时忽略错误 */
+    private fun ensureSyncDir(config: WebDavConfig) {
+        try {
+            val dirUrl = config.url.trimEnd('/') + "/$SYNC_DIR/"
+            val conn = URL(dirUrl).openConnection() as HttpURLConnection
+            conn.requestMethod = "MKCOL"
+            conn.connectTimeout = TIMEOUT
+            conn.readTimeout = TIMEOUT
+            conn.setRequestProperty("Authorization", basicAuth(config))
+            val code = conn.responseCode
+            // 201 Created / 405 Method Not Allowed(已存在) / 409 Conflict(已存在) 都视为正常
+            if (code !in 200..299 && code != 405 && code != 409) {
+                android.util.Log.w("SyncEngine", "MKCOL 返回非预期状态码: $code，继续执行")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SyncEngine", "创建 sync 目录失败(可能已存在): ${e.message}")
+        }
+    }
 
     private fun basicAuth(config: WebDavConfig): String {
         val raw = "${config.username}:${config.password}"
