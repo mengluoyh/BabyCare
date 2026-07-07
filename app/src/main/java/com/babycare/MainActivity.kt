@@ -4,10 +4,14 @@ package com.babycare
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.util.DisplayMetrics
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +39,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 应用背景图（在 fragment 加载之前）
+        applyBackground()
 
         if (savedInstanceState == null) {
             loadFragment(TimerFragment())
@@ -119,5 +126,47 @@ class MainActivity : AppCompatActivity() {
             else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
         AppCompatDelegate.setDefaultNightMode(modeValue)
+    }
+
+    /**
+     * 读取已保存的背景图和透明度设置，应用到 fragment_container。
+     * 由 SettingsFragment 在图片选择/透明度变化时触发调用。
+     */
+    fun applyBackground() {
+        val path = settings.getBackgroundImagePath()
+        val alpha = settings.getBackgroundAlpha()
+        if (path.isEmpty() || alpha == 0) {
+            binding.fragmentContainer.background = null
+            return
+        }
+        try {
+            val uri = Uri.parse(path)
+            val inputStream = contentResolver.openInputStream(uri)
+            val src = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            if (src == null) {
+                binding.fragmentContainer.background = null
+                return
+            }
+            // 取容器宽高；若尚未布局（onCreate中调用）则用屏幕尺寸
+            var w = binding.fragmentContainer.width
+            var h = binding.fragmentContainer.height
+            if (w <= 0 || h <= 0) {
+                val dm = DisplayMetrics()
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.getMetrics(dm)
+                w = dm.widthPixels
+                h = dm.heightPixels
+            }
+            val scaled = Bitmap.createScaledBitmap(src, w.coerceAtLeast(1), h.coerceAtLeast(1), true)
+            if (scaled != src) src.recycle()
+
+            val drawable = BitmapDrawable(resources, scaled)
+            drawable.alpha = alpha
+            binding.fragmentContainer.background = drawable
+        } catch (e: Exception) {
+            binding.fragmentContainer.background = null
+            android.util.Log.w("MainActivity", "背景图加载失败", e)
+        }
     }
 }
