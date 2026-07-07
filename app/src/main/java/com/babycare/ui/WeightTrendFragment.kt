@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
-import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 /** 体重记录 — 输入体重保存，记录当前日期、时间 */
@@ -37,7 +38,7 @@ class WeightTrendFragment : Fragment() {
     override fun onCreateView(inflater: android.view.LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         return android.widget.ScrollView(requireContext()).apply {
             isFillViewport = true
-            setBackgroundColor(requireContext().getColor(com.babycare.R.color.background))
+            // 背景透明，让 activity_main 的 fragment_container 背景图透出
 
             addView(android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
@@ -189,14 +190,13 @@ class WeightTrendFragment : Fragment() {
                 Toast.makeText(requireContext(), "没有体重记录可导出", Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val sdf = EX_FMT
             val sb = StringBuilder()
             sb.appendLine("========== 体重记录导出 ==========")
-            sb.appendLine("导出时间：${sdf.format(Date())}")
+            sb.appendLine("导出时间：${EX_FMT.format(java.time.Instant.now())}")
             sb.appendLine("共 ${weightRecords.size} 条记录")
             sb.appendLine()
             weightRecords.forEachIndexed { i, r ->
-                sb.appendLine("${i + 1}. ${sdf.format(Date(r.timestamp))}  ⚖️ ${r.weight} kg")
+                sb.appendLine("${i + 1}. ${EX_FMT.format(java.time.Instant.ofEpochMilli(r.timestamp))}  ⚖️ ${r.weight} kg")
             }
             sb.appendLine("\n========== 导出结束 ==========")
             try {
@@ -228,7 +228,7 @@ class WeightTrendFragment : Fragment() {
         }
         override fun onBindViewHolder(holder: VH, position: Int) {
             val r = getItem(position)
-            holder.tv.text = "${DATE_FMT.format(Date(r.timestamp))}    ⚖️ ${r.weight} kg"
+            holder.tv.text = "${DATE_FMT.format(java.time.Instant.ofEpochMilli(r.timestamp))}    ⚖️ ${r.weight} kg"
             holder.tv.setOnLongClickListener {
                 onDelete(r)
                 true
@@ -238,11 +238,13 @@ class WeightTrendFragment : Fragment() {
             androidx.recyclerview.widget.RecyclerView.ViewHolder(tv)
 
         companion object {
-            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                .withZone(ZoneId.systemDefault())
         }
     }
 
-    private val EX_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    private val EX_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        .withZone(ZoneId.systemDefault())
 
     private class DiffCallback : DiffUtil.ItemCallback<WeightRecord>() {
         override fun areItemsTheSame(old: WeightRecord, new: WeightRecord) = old.id == new.id

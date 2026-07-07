@@ -19,7 +19,9 @@ import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -203,7 +205,7 @@ class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
         inner class VH(private val itemBinding: com.babycare.databinding.ItemRecordBinding) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: FeedingRecord) {
-                itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
+                itemBinding.tvTime.text = DATE_FMT.format(Instant.ofEpochMilli(r.timestamp))
                 itemBinding.tvDetail.text = "${Constants.feedTypeIcon(Constants.FEED_FORMULA)} ${Constants.feedTypeLabel(Constants.FEED_FORMULA)} ${r.volume ?: 0} ml"
                 val diffStr = r.diff?.let {
                     val minutes = TimeUnit.MILLISECONDS.toMinutes(it)
@@ -217,7 +219,8 @@ class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
         }
 
         companion object {
-            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
         }
     }
 

@@ -64,7 +64,7 @@ class VaccinationRecordsFragment : Fragment() {
             )
             addView(ScrollView(requireContext()).apply {
                 isFillViewport = true
-                setBackgroundColor(ContextCompat.getColor(context, R.color.background))
+                // 背景透明，让 activity_main 的 fragment_container 背景图透出
 
                 contentLayout = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL

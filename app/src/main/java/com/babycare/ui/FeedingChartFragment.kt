@@ -13,7 +13,9 @@ import com.babycare.util.AgeCalculator
 import com.babycare.util.ChartDrawer
 import com.babycare.util.Constants
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class FeedingChartFragment : Fragment() {
@@ -48,17 +50,16 @@ class FeedingChartFragment : Fragment() {
             val start = AgeCalculator.getPastDaysStart(chartDays - 1)
             val feedings = feedingDao.getFeedingsBetween(start, end)
 
-            val sdf = CHART_FMT
             val dailyData = mutableMapOf<String, Triple<Int, Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
                     timeInMillis = end
                     add(Calendar.DAY_OF_MONTH, -i)
                 }
-                dailyData[sdf.format(cal.time)] = Triple(0, 0, 0)
+                dailyData[CHART_FMT.format(cal.toInstant())] = Triple(0, 0, 0)
             }
             for (f in feedings) {
-                val key = sdf.format(Date(f.timestamp))
+                val key = CHART_FMT.format(Instant.ofEpochMilli(f.timestamp))
                 val (breast, formula, bottleBreast) = dailyData[key] ?: Triple(0, 0, 0)
                 when (f.feedType) {
                     Constants.FEED_BREAST -> dailyData[key] = Triple(breast + 1, formula, bottleBreast)
@@ -96,7 +97,8 @@ class FeedingChartFragment : Fragment() {
     }
 
     companion object {
-        private val CHART_FMT = SimpleDateFormat("MM/dd", Locale.getDefault())
+        private val CHART_FMT = DateTimeFormatter.ofPattern("MM/dd")
+            .withZone(ZoneId.systemDefault())
     }
 
     override fun onDestroyView() {

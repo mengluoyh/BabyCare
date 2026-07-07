@@ -19,7 +19,9 @@ import com.babycare.data.WeightRecord
 import com.babycare.databinding.FragmentBabyGrowthContentBinding
 import com.babycare.util.AgeCalculator
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class BabyGrowthContentFragment : Fragment() {
@@ -36,7 +38,8 @@ class BabyGrowthContentFragment : Fragment() {
     private var currentProfile: BabyProfile? = null
 
     companion object {
-        private val BIRTH_FMT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        private val BIRTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            .withZone(ZoneId.systemDefault())
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -67,7 +70,7 @@ class BabyGrowthContentFragment : Fragment() {
     }
 
     private fun updateBirthUI() {
-        binding.tvBirthDate.text = if (birthDate > 0) BIRTH_FMT.format(Date(birthDate)) else "未设置"
+        binding.tvBirthDate.text = if (birthDate > 0) BIRTH_FMT.format(Instant.ofEpochMilli(birthDate)) else "未设置"
         binding.btnLockBirth.text = if (birthLocked) "🔓 已锁定" else "🔒 锁定"
         binding.btnEditBirth.isEnabled = !birthLocked
     }

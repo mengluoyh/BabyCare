@@ -12,7 +12,9 @@ import com.babycare.databinding.FragmentExcreteChartBinding
 import com.babycare.util.AgeCalculator
 import com.babycare.util.ChartDrawer
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class ExcreteChartFragment : Fragment() {
@@ -45,17 +47,16 @@ class ExcreteChartFragment : Fragment() {
             val start = AgeCalculator.getPastDaysStart(chartDays - 1)
             val records = excreteDao.getExcretesBetween(start, end)
 
-            val sdf = CHART_FMT
             val dailyData = mutableMapOf<String, Triple<Int, Int, Int>>()
             for (i in (chartDays - 1) downTo 0) {
                 val cal = Calendar.getInstance().apply {
                     timeInMillis = end
                     add(Calendar.DAY_OF_MONTH, -i)
                 }
-                dailyData[sdf.format(cal.time)] = Triple(0, 0, 0)
+                dailyData[CHART_FMT.format(cal.toInstant())] = Triple(0, 0, 0)
             }
             for (r in records) {
-                val key = sdf.format(Date(r.timestamp))
+                val key = CHART_FMT.format(Instant.ofEpochMilli(r.timestamp))
                 val (bowel, pee, _) = dailyData[key] ?: Triple(0, 0, 0)
                 if (r.type == "bowel") dailyData[key] = Triple(bowel + 1, pee, 0)
                 else dailyData[key] = Triple(bowel, pee + 1, 0)
@@ -86,7 +87,8 @@ class ExcreteChartFragment : Fragment() {
     }
 
     companion object {
-        private val CHART_FMT = SimpleDateFormat("MM/dd", Locale.getDefault())
+        private val CHART_FMT = DateTimeFormatter.ofPattern("MM/dd")
+            .withZone(ZoneId.systemDefault())
     }
 
     override fun onDestroyView() {

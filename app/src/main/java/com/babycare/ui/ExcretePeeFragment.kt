@@ -18,7 +18,9 @@ import com.babycare.R
 import com.babycare.data.ExcreteRecord
 import com.babycare.databinding.FragmentExcretePeeBinding
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -105,7 +107,7 @@ class ExcretePeeFragment : Fragment() {
         inner class VH(private val itemBinding: com.babycare.databinding.ItemRecordBinding) :
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: ExcreteRecord) {
-                itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
+                itemBinding.tvTime.text = DATE_FMT.format(Instant.ofEpochMilli(r.timestamp))
                 val notePart = if (!r.note.isNullOrBlank()) " · ${r.note}" else ""
                 itemBinding.tvDetail.text = "💧 小便$notePart"
                 val diffStr = r.diff?.let {
@@ -119,7 +121,8 @@ class ExcretePeeFragment : Fragment() {
         }
 
         companion object {
-            private val DATE_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
         }
     }
 
