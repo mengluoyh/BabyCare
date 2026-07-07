@@ -41,6 +41,7 @@ class CustomRecordFragment : Fragment() {
     }
 
     private fun setupUI() {
+        // ⭐ 先设 listener，再设初始值，确保初始勾选触发回调
         binding.rbCustomBreast.setOnCheckedChangeListener { _, checked ->
             binding.etCustomVolume.isEnabled = false
             if (checked) binding.etCustomVolume.text?.clear()
@@ -55,6 +56,9 @@ class CustomRecordFragment : Fragment() {
                 binding.etCustomVolume.hint = "配方奶量 (ml)"
             }
         }
+
+        // 默认配方奶，主动触发 listener 初始化 volume 字段
+        binding.rbCustomFormula.isChecked = true
 
         // 初始化日期/时间为当前时间
         val now = Calendar.getInstance()

@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
 import com.babycare.util.Constants
+import com.babycare.util.SyncEngine
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -58,8 +59,32 @@ class TimerFragment : Fragment() {
 
         setupTabs()
         setupUI()
+        setupRefresh()
         observeState()
         observeEvents()
+    }
+
+    // ═══════════════════ 下拉刷新 ═══════════════════
+
+    private fun setupRefresh() {
+        binding.swipeRefresh.setOnRefreshListener {
+            lifecycleScope.launch {
+                try {
+                    val result = SyncEngine.sync(requireContext())
+                    result.onSuccess {
+                        val parts = mutableListOf<String>()
+                        if (it.pushed > 0) parts.add("上传 ${it.pushed} 条")
+                        if (it.pulled > 0) parts.add("下载 ${it.pulled} 条")
+                        val msg = if (parts.isEmpty()) "✅ 同步完成，无新数据" else "✅ 同步成功：${parts.joinToString("、")}"
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                    }.onFailure { e ->
+                        Toast.makeText(requireContext(), "同步失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } finally {
+                    binding.swipeRefresh.isRefreshing = false
+                }
+            }
+        }
     }
 
     // ═══════════════════ Tab切换 ═══════════════════
@@ -126,6 +151,9 @@ class TimerFragment : Fragment() {
                 binding.etVolume.hint = "配方奶量 (ml)"
             }
         }
+
+        // 主动触发配方奶的 listener，确保 volume 字段初始化正确
+        binding.rbFormula.isChecked = true
 
         binding.btnSaveFormula.setOnClickListener {
             val text = binding.etCustomFormula.text.toString()

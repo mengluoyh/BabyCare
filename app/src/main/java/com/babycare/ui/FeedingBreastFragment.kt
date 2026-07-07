@@ -104,22 +104,31 @@ class FeedingBreastFragment : Fragment(), FeedingRecordsFragment.Paginable {
         val TIME_FMT = SimpleDateFormat("HH:mm", Locale.getDefault())
         var editTimestamp = record.timestamp
 
-        rbBreast.isChecked = true
-        etVolume.isEnabled = false
-        etVolume.text?.clear()
-        etDate.setText(DATE_FMT.format(Date(record.timestamp)))
-        etTime.setText(TIME_FMT.format(Date(record.timestamp)))
-
+        // ⭐ 先设 listener，再设初始值，确保初始勾选触发回调
         rbBreast.setOnCheckedChangeListener { _, checked ->
             etVolume.isEnabled = false
             if (checked) etVolume.text?.clear()
         }
         rbBottleBreast.setOnCheckedChangeListener { _, checked ->
             etVolume.isEnabled = checked
+            if (checked) etVolume.hint = "瓶喂母乳量 (ml)"
         }
         rbFormula.setOnCheckedChangeListener { _, checked ->
-            if (checked) etVolume.isEnabled = true
+            if (checked) {
+                etVolume.isEnabled = true
+                etVolume.hint = "配方奶量 (ml)"
+            }
         }
+
+        // 根据记录类型还原 Radio 状态（会触发 listener）
+        when (record.feedType) {
+            Constants.FEED_BREAST -> rbBreast.isChecked = true
+            Constants.FEED_BOTTLE_BREAST -> rbBottleBreast.isChecked = true
+            else -> rbFormula.isChecked = true
+        }
+        etVolume.setText(record.volume?.toString() ?: "")
+        etDate.setText(DATE_FMT.format(Date(record.timestamp)))
+        etTime.setText(TIME_FMT.format(Date(record.timestamp)))
 
         etDate.setOnClickListener {
             val cal = Calendar.getInstance().apply { timeInMillis = editTimestamp }

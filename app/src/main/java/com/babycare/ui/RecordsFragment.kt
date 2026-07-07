@@ -5,9 +5,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.babycare.databinding.FragmentRecordsBinding
+import com.babycare.util.SyncEngine
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
 
 class RecordsFragment : Fragment() {
     private var _binding: FragmentRecordsBinding? = null
@@ -23,6 +27,28 @@ class RecordsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupTabs()
+        setupRefresh()
+    }
+
+    private fun setupRefresh() {
+        binding.swipeRefresh.setOnRefreshListener {
+            lifecycleScope.launch {
+                try {
+                    val result = SyncEngine.sync(requireContext())
+                    result.onSuccess {
+                        val parts = mutableListOf<String>()
+                        if (it.pushed > 0) parts.add("上传 ${it.pushed} 条")
+                        if (it.pulled > 0) parts.add("下载 ${it.pulled} 条")
+                        val msg = if (parts.isEmpty()) "✅ 同步完成，无新数据" else "✅ 同步成功：${parts.joinToString("、")}"
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                    }.onFailure { e ->
+                        Toast.makeText(requireContext(), "同步失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } finally {
+                    binding.swipeRefresh.isRefreshing = false
+                }
+            }
+        }
     }
 
     private fun setupTabs() {

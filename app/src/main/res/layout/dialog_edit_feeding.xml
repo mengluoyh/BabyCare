@@ -36,6 +36,7 @@
         android:layout_height="wrap_content"
         android:hint="奶量 (ml)"
         android:inputType="number"
+        android:focusableInTouchMode="true"
         android:layout_marginTop="8dp" />
 
     <EditText
