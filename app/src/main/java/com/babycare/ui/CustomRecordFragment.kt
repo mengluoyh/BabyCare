@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.databinding.FragmentCustomRecordBinding
+import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -88,11 +89,11 @@ class CustomRecordFragment : Fragment() {
 
         binding.btnSaveCustomRecord.setOnClickListener {
             val feedType = when {
-                binding.rbCustomBreast.isChecked -> "breast"
-                binding.rbCustomBottleBreast.isChecked -> "bottle_breast"
-                else -> "formula"
+                binding.rbCustomBreast.isChecked -> Constants.FEED_BREAST
+                binding.rbCustomBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+                else -> Constants.FEED_FORMULA
             }
-            val needsVolume = feedType != "breast"
+            val needsVolume = Constants.needsVolume(feedType)
             val volume = if (needsVolume) binding.etCustomVolume.text.toString().toIntOrNull() else null
             if (needsVolume && volume == null) {
                 Toast.makeText(requireContext(), "请输入奶量", Toast.LENGTH_SHORT).show()
@@ -109,17 +110,13 @@ class CustomRecordFragment : Fragment() {
             val record = FeedingRecord(
                 type = "manual",
                 feedType = feedType,
-                volume = if (feedType != "breast") volume else null,
+                volume = if (Constants.needsVolume(feedType)) volume else null,
                 timestamp = selectedTimestamp,
                 diff = diff,
                 lastModified = System.currentTimeMillis()
             )
             feedingDao.insert(record)
-            val label = when (feedType) {
-                "breast" -> "亲喂"
-                "bottle_breast" -> "瓶喂母乳 ${volume}ml"
-                else -> "配方奶 ${volume}ml"
-            }
+            val label = Constants.feedTypeLabel(feedType) + if (volume != null) " ${volume}ml" else ""
             Toast.makeText(requireContext(), "补录成功：$label", Toast.LENGTH_SHORT).show()
             binding.etCustomVolume.text?.clear()
         }

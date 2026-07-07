@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.babycare.databinding.FragmentTimerBinding
+import com.babycare.util.Constants
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -49,8 +50,8 @@ class TimerFragment : Fragment() {
         }
         if (savedFeedType != null) {
             when (savedFeedType) {
-                "breast" -> binding.rbBreast.isChecked = true
-                "bottle_breast" -> binding.rbBottleBreast.isChecked = true
+                Constants.FEED_BREAST -> binding.rbBreast.isChecked = true
+                Constants.FEED_BOTTLE_BREAST -> binding.rbBottleBreast.isChecked = true
                 else -> binding.rbFormula.isChecked = true
             }
         }
@@ -101,11 +102,11 @@ class TimerFragment : Fragment() {
 
         binding.btnFeedNow.setOnClickListener {
             val feedType = when {
-                binding.rbBreast.isChecked -> "breast"
-                binding.rbBottleBreast.isChecked -> "bottle_breast"
-                else -> "formula"
+                binding.rbBreast.isChecked -> Constants.FEED_BREAST
+                binding.rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+                else -> Constants.FEED_FORMULA
             }
-            val needsVolume = feedType != "breast"
+            val needsVolume = Constants.needsVolume(feedType)
             val volume = if (needsVolume) binding.etVolume.text.toString().toIntOrNull() else null
             viewModel.feedNow(feedType, volume)
             binding.etVolume.text?.clear()
@@ -173,6 +174,7 @@ class TimerFragment : Fragment() {
                     when (event) {
                         CountdownEvent.TriggerAlert -> showAlertDialog()
                         CountdownEvent.DismissAlert -> dismissAlert()
+                        is CountdownEvent.ShowToast -> Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -206,9 +208,9 @@ class TimerFragment : Fragment() {
         savedVolumeText = binding.etVolume.text?.toString()
         savedCustomFormulaText = binding.etCustomFormula.text?.toString()
         savedFeedType = when {
-            binding.rbBreast.isChecked -> "breast"
-            binding.rbBottleBreast.isChecked -> "bottle_breast"
-            else -> "formula"
+            binding.rbBreast.isChecked -> Constants.FEED_BREAST
+            binding.rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+            else -> Constants.FEED_FORMULA
         }
     }
 

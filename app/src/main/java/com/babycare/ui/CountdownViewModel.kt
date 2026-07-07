@@ -10,6 +10,7 @@ import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.data.SettingsManager
 import com.babycare.util.AgeCalculator
+import com.babycare.util.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -90,7 +91,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             val record = FeedingRecord(
                 type = "manual",
                 feedType = feedType,
-                volume = if (feedType != "breast") volume else null,
+                volume = if (Constants.needsVolume(feedType)) volume else null,
                 timestamp = System.currentTimeMillis(),
                 diff = diff
             )
@@ -100,6 +101,10 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             // 停止音频播报并关闭弹窗
             stopAudio()
             _events.emit(CountdownEvent.DismissAlert)
+            // 发出Toast事件
+            val label = Constants.feedTypeLabel(feedType)
+            val volStr = if (volume != null) " ${volume}ml" else ""
+            _events.emit(CountdownEvent.ShowToast("✅ 已记录：$label$volStr"))
             // 重置倒计时（均重置）
             cancelTimer()
             nextFeedTime = System.currentTimeMillis() + intervalMinutes * 60_000L
@@ -311,7 +316,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
             val diff = prev?.timestamp?.let { System.currentTimeMillis() - it }
             feedingDao.insert(FeedingRecord(
                 type = "auto",
-                feedType = "formula",
+                feedType = Constants.FEED_FORMULA,
                 volume = null,
                 timestamp = System.currentTimeMillis(),
                 diff = diff
@@ -488,4 +493,6 @@ sealed class CountdownEvent {
     data object TriggerAlert : CountdownEvent()
     /** 关闭弹窗 */
     data object DismissAlert : CountdownEvent()
+    /** 显示Toast消息 */
+    data class ShowToast(val message: String) : CountdownEvent()
 }

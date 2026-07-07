@@ -24,8 +24,8 @@ data class FeedingRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Long,
     val type: String,         // "auto" or "manual"
-    val feedType: String,     // "breast" or "formula"
-    val volume: Int? = null,  // ml for formula
+    val feedType: String,     // "breast" | "bottle_breast" | "formula"
+    val volume: Int? = null,  // ml for formula / bottle_breast
     val diff: Long? = null,   // ms since last feeding
     val lastModified: Long = System.currentTimeMillis(),
     val isDeleted: Boolean = false
@@ -281,7 +281,7 @@ interface BabyDao {
 
 @Database(
     entities = [BabyProfile::class, FeedingRecord::class, ExcreteRecord::class, VaccinationRecord::class, WeightRecord::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -395,13 +395,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v9→v10：初始化遗留记录的 feedType（NULL/空→'formula'），确保数据一致 */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE feeding_records SET feedType = 'formula' WHERE feedType IS NULL OR feedType = ''")
+                db.execSQL("UPDATE feeding_records SET lastModified = lastModified WHERE lastModified = 0")
+                android.util.Log.w("AppDatabase", "Migration 9->10: initialized NULL feedType to 'formula'")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babycare_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.babycare.BabyCareApp
 import com.babycare.data.FeedingRecord
 import com.babycare.databinding.FragmentFeedingFormulaBinding
+import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -44,7 +45,7 @@ class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
 
         lifecycleScope.launch {
             feedingDao.getAll().collect { records ->
-                allRecords = records.filter { it.feedType == "formula" }
+                allRecords = records.filter { it.feedType == Constants.FEED_FORMULA }
                 currentPage = 0
                 updateList()
             }
@@ -142,11 +143,11 @@ class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
             .setView(dialogView)
             .setPositiveButton("保存") { _, _ ->
                 val feedType = when {
-                    rbBreast.isChecked -> "breast"
-                    rbBottleBreast.isChecked -> "bottle_breast"
-                    else -> "formula"
+                    rbBreast.isChecked -> Constants.FEED_BREAST
+                    rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+                    else -> Constants.FEED_FORMULA
                 }
-                val needsVolume = feedType != "breast"
+                val needsVolume = Constants.needsVolume(feedType)
                 val volume = if (needsVolume) etVolume.text.toString().toIntOrNull() else null
                 if (needsVolume && volume == null) {
                     Toast.makeText(requireContext(), "请输入奶量", Toast.LENGTH_SHORT).show()
@@ -192,7 +193,7 @@ class FeedingFormulaFragment : Fragment(), FeedingRecordsFragment.Paginable {
             androidx.recyclerview.widget.RecyclerView.ViewHolder(itemBinding.root) {
             fun bind(r: FeedingRecord) {
                 itemBinding.tvTime.text = DATE_FMT.format(Date(r.timestamp))
-                itemBinding.tvDetail.text = "🍼 配方奶 ${r.volume ?: 0} ml"
+                itemBinding.tvDetail.text = "${Constants.feedTypeIcon(Constants.FEED_FORMULA)} ${Constants.feedTypeLabel(Constants.FEED_FORMULA)} ${r.volume ?: 0} ml"
                 val diffStr = r.diff?.let {
                     val minutes = TimeUnit.MILLISECONDS.toMinutes(it)
                     val hours = minutes / 60

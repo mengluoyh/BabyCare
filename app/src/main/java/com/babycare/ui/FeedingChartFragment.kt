@@ -11,6 +11,7 @@ import com.babycare.BabyCareApp
 import com.babycare.databinding.FragmentFeedingChartBinding
 import com.babycare.util.AgeCalculator
 import com.babycare.util.ChartDrawer
+import com.babycare.util.Constants
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -60,8 +61,8 @@ class FeedingChartFragment : Fragment() {
                 val key = sdf.format(Date(f.timestamp))
                 val (breast, formula, bottleBreast) = dailyData[key] ?: Triple(0, 0, 0)
                 when (f.feedType) {
-                    "breast" -> dailyData[key] = Triple(breast + 1, formula, bottleBreast)
-                    "bottle_breast" -> dailyData[key] = Triple(breast, formula, bottleBreast + (f.volume ?: 0))
+                    Constants.FEED_BREAST -> dailyData[key] = Triple(breast + 1, formula, bottleBreast)
+                    Constants.FEED_BOTTLE_BREAST -> dailyData[key] = Triple(breast, formula, bottleBreast + (f.volume ?: 0))
                     else -> dailyData[key] = Triple(breast, formula + (f.volume ?: 0), bottleBreast)
                 }
             }
