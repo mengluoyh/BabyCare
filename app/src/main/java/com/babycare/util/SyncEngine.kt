@@ -336,48 +336,74 @@ object SyncEngine {
 
     // ── 工具方法 ──
 
-    /** 在 WebDAV 服务器上创建 sync 目录（MKCOL），支持嵌套路径逐级创建 */
+    /** 在 WebDAV 服务器上创建 sync 目录（优先 MKCOL，不支持时用 PUT 临时文件变相创建） */
     private fun ensureSyncDir(config: WebDavConfig) {
         val baseUrl = config.url.trimEnd('/')
         val parts = SYNC_DIR.split("/")
         var current = baseUrl
         for (part in parts) {
             current += "/$part"
-            try {
-                val conn = URL(current + "/").openConnection() as HttpURLConnection
-                conn.requestMethod = "MKCOL"
-                conn.connectTimeout = TIMEOUT
-                conn.readTimeout = TIMEOUT
-                conn.setRequestProperty("Authorization", basicAuth(config))
-                val code = conn.responseCode
-                // 201 Created / 405(已存在) / 409(已存在) / 3xx(重定向) 都视为正常
-                if (code in 200..299 || code == 405 || code == 409 || code in 300..399) {
-                    continue
-                }
-                // MKCOL 返回非预期状态码（如 403），用 PROPFIND 验证目录是否已存在
-                if (!directoryExists(config, current)) {
-                    throw Exception("创建目录失败: MKCOL 返回 HTTP $code，且目录不存在")
-                }
-            } catch (e: Exception) {
-                // 再次用 PROPFIND 验证——可能连接异常但目录已存在
-                if (directoryExists(config, current)) {
-                    continue
-                }
-                throw Exception("创建目录 $current 失败: ${e.message}")
-            }
+            // 先 GET 检查是否已存在（兼容不支持 PROPFIND 的服务器）
+            if (checkDirExists(config, current)) continue
+            // 尝试 MKCOL
+            if (mkCol(config, current)) continue
+            // MKCOL 不支持 → PUT 临时文件变相创建
+            if (mkdirViaPut(config, current)) continue
+            throw Exception("创建目录 $current 失败: 服务器不支持 MKCOL 且 PUT 临时文件也失败")
         }
     }
 
-    /** 用 PROPFIND（Depth:0）检查 WebDAV 目录是否存在 */
-    private fun directoryExists(config: WebDavConfig, path: String): Boolean {
+    /** GET 请求检查目录是否存在 */
+    private fun checkDirExists(config: WebDavConfig, path: String): Boolean {
         return try {
             val conn = URL(path + "/").openConnection() as HttpURLConnection
-            conn.requestMethod = "PROPFIND"
+            conn.requestMethod = "GET"
             conn.connectTimeout = TIMEOUT
             conn.readTimeout = TIMEOUT
             conn.setRequestProperty("Authorization", basicAuth(config))
-            conn.setRequestProperty("Depth", "0")
-            conn.responseCode in 200..299
+            conn.instanceFollowRedirects = false
+            conn.responseCode in 200..299 || conn.responseCode in 300..399
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** 执行 MKCOL，成功返回 true */
+    private fun mkCol(config: WebDavConfig, path: String): Boolean {
+        return try {
+            val conn = URL(path + "/").openConnection() as HttpURLConnection
+            conn.requestMethod = "MKCOL"
+            conn.connectTimeout = TIMEOUT
+            conn.readTimeout = TIMEOUT
+            conn.setRequestProperty("Authorization", basicAuth(config))
+            val code = conn.responseCode
+            code in 200..299 || code == 405 || code == 409 || code in 300..399
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** PUT 临时文件 + DELETE 来变相创建目录 */
+    private fun mkdirViaPut(config: WebDavConfig, path: String): Boolean {
+        val tempFile = path + "/.mkdir_temp_babycare"
+        return try {
+            val putConn = URL(tempFile).openConnection() as HttpURLConnection
+            putConn.requestMethod = "PUT"
+            putConn.doOutput = true
+            putConn.connectTimeout = TIMEOUT
+            putConn.readTimeout = TIMEOUT
+            putConn.setRequestProperty("Authorization", basicAuth(config))
+            putConn.setRequestProperty("Content-Type", "application/octet-stream")
+            putConn.outputStream.use { it.write(ByteArray(0)) }
+            val putCode = putConn.responseCode
+            if (putCode !in 200..299) return false
+            val delConn = URL(tempFile).openConnection() as HttpURLConnection
+            delConn.requestMethod = "DELETE"
+            delConn.connectTimeout = TIMEOUT
+            delConn.readTimeout = TIMEOUT
+            delConn.setRequestProperty("Authorization", basicAuth(config))
+            delConn.responseCode
+            true
         } catch (_: Exception) {
             false
         }
