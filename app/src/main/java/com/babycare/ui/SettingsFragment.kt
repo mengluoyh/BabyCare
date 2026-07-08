@@ -43,20 +43,6 @@ class SettingsFragment : Fragment() {
             Toast.makeText(requireContext(), "✅ 播报音频已选择", Toast.LENGTH_SHORT).show()
         }
     }
-
-    // 背景图片选择器：选择APP背景图
-    private val backgroundImagePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            try {
-                requireContext().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: Exception) { }
-            settings.saveBackgroundImagePath(uri.toString())
-            updateBackgroundPreview()
-            applyBackgroundToActivity()
-            Toast.makeText(requireContext(), "✅ 背景图已选择", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -66,7 +52,6 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         loadBackupConfig()
         loadThemeConfig()
-        loadBackgroundConfig()
         setupUI()
     }
 
@@ -153,26 +138,6 @@ class SettingsFragment : Fragment() {
         }
         binding.btnTestAudio.setOnClickListener { testAudioPlay() }
 
-        // ─── 背景图 ───
-        binding.btnSelectBackground.setOnClickListener {
-            backgroundImagePicker.launch(arrayOf("image/*"))
-        }
-        binding.btnClearBackground.setOnClickListener {
-            settings.saveBackgroundImagePath("")
-            updateBackgroundPreview()
-            applyBackgroundToActivity()
-            Toast.makeText(requireContext(), "🗑️ 背景图已清除", Toast.LENGTH_SHORT).show()
-        }
-        binding.sbBackgroundAlpha.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.tvBackgroundAlphaValue.text = "${(progress * 100 / 255)}%"
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
-                settings.saveBackgroundAlpha(seekBar?.progress ?: 255)
-                applyBackgroundToActivity()
-            }
-        })
     }
 
     private fun doLocalBackup() {
@@ -348,40 +313,6 @@ class SettingsFragment : Fragment() {
             "dark" -> binding.rbThemeDark.isChecked = true
             else -> binding.rbThemeSystem.isChecked = true
         }
-    }
-
-    // ═══════════════════ 背景图 ═══════════════════
-
-    private fun loadBackgroundConfig() {
-        val path = settings.getBackgroundImagePath()
-        val alpha = settings.getBackgroundAlpha()
-        binding.sbBackgroundAlpha.progress = alpha
-        binding.tvBackgroundAlphaValue.text = "${(alpha * 100 / 255)}%"
-        updateBackgroundPreview()
-    }
-
-    private fun updateBackgroundPreview() {
-        val path = settings.getBackgroundImagePath()
-        if (path.isEmpty()) {
-            binding.ivBackgroundPreview.visibility = android.view.View.GONE
-            return
-        }
-        try {
-            val uri = android.net.Uri.parse(path)
-            val inputStream = requireContext().contentResolver.openInputStream(uri)
-            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            if (bitmap != null) {
-                binding.ivBackgroundPreview.setImageBitmap(bitmap)
-                binding.ivBackgroundPreview.visibility = android.view.View.VISIBLE
-            }
-        } catch (_: Exception) {
-            binding.ivBackgroundPreview.visibility = android.view.View.GONE
-        }
-    }
-
-    private fun applyBackgroundToActivity() {
-        (requireActivity() as? com.babycare.MainActivity)?.applyBackground()
     }
 
     // ═══════════════════ 音频文件 ═══════════════════

@@ -290,8 +290,18 @@ object SyncEngine {
             conn.setRequestProperty("Authorization", basicAuth(config))
             if (conn.responseCode in 200..299) {
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
+                // 方式1：正则匹配文件名
                 val regex = Regex("changes_[a-z0-9]+_\\d+\\.json")
                 for (m in regex.findAll(text)) files.add(m.value)
+                // 方式2：逐行解析
+                if (files.isEmpty()) {
+                    text.lines().forEach { line ->
+                        val name = line.trim()
+                        if (name.startsWith("changes_") && name.endsWith(".json")) {
+                            files.add(name)
+                        }
+                    }
+                }
             }
         } catch (_: Exception) {}
 

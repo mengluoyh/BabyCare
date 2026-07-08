@@ -139,8 +139,10 @@ class TimerFragment : Fragment() {
         }
 
         binding.rbBreast.setOnCheckedChangeListener { _, checked ->
-            binding.etVolume.isEnabled = false
-            if (checked) binding.etVolume.text?.clear()
+            if (checked) {
+                binding.etVolume.isEnabled = false
+                binding.etVolume.text?.clear()
+            }
         }
         binding.rbBottleBreast.setOnCheckedChangeListener { _, checked ->
             binding.etVolume.isEnabled = checked

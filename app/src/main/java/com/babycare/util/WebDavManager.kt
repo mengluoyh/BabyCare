@@ -296,11 +296,22 @@ object WebDavManager {
             val code = conn.responseCode
             if (code in 200..299) {
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
+                // 方式1：href 正则（HTML/XML 格式）
                 val hrefRegex = Regex("""href=["']([^"']*babycare_backup_\d{8}_\d{6}\.json)["']""", RegexOption.IGNORE_CASE)
                 for (m in hrefRegex.findAll(text)) files.add(m.groupValues[1].trim())
+                // 方式2：纯文本正则（每行一个文件名）
                 if (files.isEmpty()) {
                     val rawRegex = Regex("babycare_backup_\\d{8}_\\d{6}\\.json")
                     for (m in rawRegex.findAll(text)) files.add(m.value)
+                }
+                // 方式3：逐行解析，过滤JSON文件名
+                if (files.isEmpty()) {
+                    text.lines().forEach { line ->
+                        val name = line.trim()
+                        if (name.startsWith("babycare_backup_") && name.endsWith(".json")) {
+                            files.add(name)
+                        }
+                    }
                 }
             }
             if (files.isNotEmpty()) return files.sortedByDescending { it }

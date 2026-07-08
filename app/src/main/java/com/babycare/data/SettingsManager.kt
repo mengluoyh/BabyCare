@@ -53,14 +53,6 @@ class SettingsManager(context: Context) {
     fun getTimerFinishedHandled(): Boolean = prefs.getBoolean("timer_finished_handled", false)
     fun saveTimerFinishedHandled(handled: Boolean) = prefs.edit().putBoolean("timer_finished_handled", handled).apply()
 
-    // ─── 背景图 ───
-    fun getBackgroundImagePath(): String = prefs.getString("background_image_path", "") ?: ""
-    fun saveBackgroundImagePath(path: String) = prefs.edit().putString("background_image_path", path).apply()
-
-    /** 背景图透明度 0~255，默认 255（完全不透明） */
-    fun getBackgroundAlpha(): Int = prefs.getInt("background_alpha", 255)
-    fun saveBackgroundAlpha(alpha: Int) = prefs.edit().putInt("background_alpha", alpha.coerceIn(0, 255)).apply()
-
     // ─── 自动同步开关 ───
     fun isAutoSyncEnabled(): Boolean = prefs.getBoolean("auto_sync_enabled", false)
     fun setAutoSyncEnabled(enabled: Boolean) = prefs.edit().putBoolean("auto_sync_enabled", enabled).apply()
