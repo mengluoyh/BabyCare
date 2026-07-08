@@ -27,6 +27,7 @@ import com.babycare.ui.*
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var settings: SettingsManager
+    private var requestStorageAttempted = false
 
     companion object {
         private const val REQUEST_STORAGE = 1001
@@ -77,6 +78,8 @@ class MainActivity : AppCompatActivity() {
      * - Android 10 及以下 : 动态请求 WRITE_EXTERNAL_STORAGE
      */
     private fun requestStoragePermission() {
+        if (requestStorageAttempted) return
+        requestStorageAttempted = true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Android 11+ 需要 MANAGE_EXTERNAL_STORAGE
             if (!Environment.isExternalStorageManager()) {
@@ -101,6 +104,8 @@ class MainActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(
                     this, arrayOf(permission), REQUEST_STORAGE
                 )
+            } else {
+                requestStorageAttempted = false // 已授权，下次不再请求
             }
         }
         // Android 5.1 及以下无需动态请求

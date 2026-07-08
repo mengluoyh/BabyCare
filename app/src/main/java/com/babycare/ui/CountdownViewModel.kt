@@ -342,43 +342,54 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     // ═══════════════════ 音频播报 ═══════════════════
-
     /** 循环播报音频（按设置次数重复播放） */
     private fun playAlertAudioLoop() {
         val audioPath = settings.getAudioFilePath()
         if (audioPath.isEmpty()) return
-        val repeatCount = settings.getAudioRepeatCount() // 获取播报次数
+        val repeatCount = settings.getAudioRepeatCount()
         stopAudio()
+        // 用标记控制循环，避免被 stopAudio() 置 null 后循环中断
+        val loopActive = true
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(audioPath)
                 for (i in 1..repeatCount) {
-                    if (audioPlayer == null) break // 被外部停止
+                    if (!loopActive || audioPlayer == null && i > 1) break // 首轮不检查，后续被 stop 则退出
                     val player = MediaPlayer().apply {
                         setDataSource(getApplication<Application>(), uri)
                         prepare()
                         start()
                     }
-                    audioPlayer = player
+                    synchronized(this@CountdownViewModel) {
+                        if (audioPlayer != null) { // 被外部 stopAudio 中断
+                            player.release()
+                            break
+                        }
+                        audioPlayer = player
+                    }
                     // 等待播放完成
                     val duration = player.duration.toLong()
                     delay(if (duration > 0) duration else 3000)
-                    player.release()
+                    synchronized(this@CountdownViewModel) {
+                        if (audioPlayer === player) audioPlayer = null
+                        player.release()
+                    }
                 }
-                audioPlayer = null
             } catch (_: Exception) {
-                audioPlayer = null
+                synchronized(this@CountdownViewModel) { audioPlayer = null }
             }
         }
     }
 
     /** 停止音频播报并释放资源 */
     private fun stopAudio() {
-        try {
-            audioPlayer?.stop()
-        } catch (_: Exception) { }
-        audioPlayer?.release()
-        audioPlayer = null
+        synchronized(this@CountdownViewModel) {
+            try {
+                audioPlayer?.stop()
+            } catch (_: Exception) { }
+            audioPlayer?.release()
+            audioPlayer = null
+        }
     }
 
     /** 用户点击"来了来了"确认 → 停止播报 + 关闭弹窗 + 续时重启倒计时 */
