@@ -84,7 +84,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         startCountdown()
     }
 
-    /** 手动记录喂养（亲喂/瓶喂母乳/配方奶均重置倒计时） */
+    /** 手动记录喂养（母乳/瓶喂母乳/配方奶均重置倒计时） */
     fun feedNow(feedType: String, volume: Int?) {
         viewModelScope.launch {
             val prev = feedingDao.getLatest()

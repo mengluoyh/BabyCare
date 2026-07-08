@@ -94,7 +94,7 @@ object ChartDrawer {
 
         // ─── 柱状图 ───
         for ((date, data) in dailyData) {
-            val (v1, v2, v3) = data  // v1 = 左/底部柱子(亲喂次数), v2 = 中(配方奶ml), v3 = 右(瓶喂母乳ml)
+            val (v1, v2, v3) = data  // v1 = 左/底部柱子(母乳次数), v2 = 中(配方奶ml), v3 = 右(瓶喂母乳ml)
             val col = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -113,7 +113,7 @@ object ChartDrawer {
                     )
                 }
 
-                // 左柱（分类1：亲喂次数）
+                // 左柱（分类1：母乳次数）
                 val leftCol = LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_HORIZONTAL
@@ -197,7 +197,7 @@ object ChartDrawer {
                 col.addView(row)
             } else {
                 // ─── 上下堆叠模式（三系列堆叠） ───
-                // 最底部柱子（分类1：亲喂次数）
+                // 最底部柱子（分类1：母乳次数）
                 val bar1 = View(ctx).apply {
                     val h = if (maxVal > 0) (v1.toFloat() / maxVal * barAreaHeight).toInt() else 0
                     layoutParams = LinearLayout.LayoutParams(barWidth.coerceAtLeast(4), h.coerceAtLeast(2))

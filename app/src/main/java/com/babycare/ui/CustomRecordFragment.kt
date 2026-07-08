@@ -45,8 +45,10 @@ class CustomRecordFragment : Fragment() {
     private fun setupUI() {
         // ⭐ 先设 listener，再设初始值，确保初始勾选触发回调
         binding.rbCustomBreast.setOnCheckedChangeListener { _, checked ->
-            binding.etCustomVolume.isEnabled = false
-            if (checked) binding.etCustomVolume.text?.clear()
+            if (checked) {
+                binding.etCustomVolume.isEnabled = false
+                binding.etCustomVolume.text?.clear()
+            }
         }
         binding.rbCustomBottleBreast.setOnCheckedChangeListener { _, checked ->
             binding.etCustomVolume.isEnabled = checked

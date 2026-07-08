@@ -271,7 +271,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="🤱 亲喂" />
+                            android:text="🤱 母乳" />
                         <RadioButton
                             android:id="@+id/rbBottleBreast"
                             android:layout_width="0dp"
@@ -290,7 +290,7 @@
                         android:id="@+id/etVolume"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="奶量 (ml，亲喂不填)"
+                        android:hint="奶量 (ml，母乳不填)"
                         android:inputType="number"
                         android:focusableInTouchMode="true"
                         android:layout_marginTop="8dp" />

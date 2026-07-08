@@ -65,7 +65,7 @@ object ExportUtil {
         records.forEachIndexed { i, r ->
             val timeStr = fmt.format(Instant.ofEpochMilli(r.timestamp))
             val typeLabel = when (r.feedType) {
-                "breast" -> "🤱 亲喂"
+                "breast" -> "🤱 母乳"
                 "bottle_breast" -> "🍶 瓶喂母乳"
                 else -> "🍼 配方奶"
             }

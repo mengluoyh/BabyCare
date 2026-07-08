@@ -182,7 +182,7 @@ class TimerFragment : Fragment() {
                     binding.tvSuggestedFormula.text = state.suggestedFormula
                     binding.tvGoalRemaining.text = state.formulaRemaining
                     binding.tvLastBreastTime.text = state.lastBreastTime
-                    binding.tvLastBreastDetail.text = "🤱 上次亲喂 · ${state.lastBreastDetail}"
+                    binding.tvLastBreastDetail.text = "🤱 上次母乳 · ${state.lastBreastDetail}"
                     binding.tvLastBottleBreastTime.text = state.lastBottleBreastTime
                     binding.tvLastBottleBreastDetail.text = "🍶 上次瓶喂母乳 · ${state.lastBottleBreastDetail}"
                     binding.tvLastFormulaTime.text = state.lastFormulaTime

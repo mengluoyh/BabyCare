@@ -85,14 +85,14 @@ class FeedingChartFragment : Fragment() {
                 labelColor1 = android.graphics.Color.parseColor("#1976D2"),
                 labelColor2 = android.graphics.Color.parseColor("#E65100"),
                 labelColor3 = android.graphics.Color.parseColor("#388E3C"),
-                legendFormat = "● 亲喂 %d 次    ■ 配方奶 %d ml    ▲ 瓶喂母乳 %d ml",
+                legendFormat = "",
                 total1 = totalBreast,
                 total2 = totalFormula,
                 total3 = totalBottleBreast,
                 sideBySide = true
             ))
 
-            binding.tvChartLegend.text = "● 亲喂 $totalBreast 次    ■ 配方奶 $totalFormula ml    ▲ 瓶喂母乳 $totalBottleBreast ml"
+            binding.tvChartLegend.text = "● 母乳    ■ 配方奶    ▲ 瓶喂母乳"
         }
     }
 
