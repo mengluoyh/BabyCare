@@ -351,12 +351,35 @@ object SyncEngine {
                 conn.setRequestProperty("Authorization", basicAuth(config))
                 val code = conn.responseCode
                 // 201 Created / 405(已存在) / 409(已存在) / 3xx(重定向) 都视为正常
-                if (code !in 200..299 && code != 405 && code != 409 && code !in 300..399) {
-                    android.util.Log.w("SyncEngine", "MKCOL $current 返回 $code，继续执行")
+                if (code in 200..299 || code == 405 || code == 409 || code in 300..399) {
+                    continue
+                }
+                // MKCOL 返回非预期状态码（如 403），用 PROPFIND 验证目录是否已存在
+                if (!directoryExists(config, current)) {
+                    throw Exception("创建目录失败: MKCOL 返回 HTTP $code，且目录不存在")
                 }
             } catch (e: Exception) {
-                android.util.Log.w("SyncEngine", "创建目录 $current 失败(可能已存在): ${e.message}")
+                // 再次用 PROPFIND 验证——可能连接异常但目录已存在
+                if (directoryExists(config, current)) {
+                    continue
+                }
+                throw Exception("创建目录 $current 失败: ${e.message}")
             }
+        }
+    }
+
+    /** 用 PROPFIND（Depth:0）检查 WebDAV 目录是否存在 */
+    private fun directoryExists(config: WebDavConfig, path: String): Boolean {
+        return try {
+            val conn = URL(path + "/").openConnection() as HttpURLConnection
+            conn.requestMethod = "PROPFIND"
+            conn.connectTimeout = TIMEOUT
+            conn.readTimeout = TIMEOUT
+            conn.setRequestProperty("Authorization", basicAuth(config))
+            conn.setRequestProperty("Depth", "0")
+            conn.responseCode in 200..299
+        } catch (_: Exception) {
+            false
         }
     }
 
