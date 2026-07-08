@@ -59,6 +59,8 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
     private var timeSinceJob: kotlinx.coroutines.Job? = null
     @Volatile
     private var audioPlayer: MediaPlayer? = null
+    @Volatile
+    private var audioStopped = false
 
     init {
         intervalMinutes = settings.getInterval()
@@ -347,24 +349,25 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
         val audioPath = settings.getAudioFilePath()
         if (audioPath.isEmpty()) return
         val repeatCount = settings.getAudioRepeatCount()
+        // 重置停止标记（必须在 stopAudio 之前，否则 stopAudio 会把它也置 true）
+        audioStopped = false
         stopAudio()
-        // 用标记控制循环，避免被 stopAudio() 置 null 后循环中断
-        val loopActive = true
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(audioPath)
                 for (i in 1..repeatCount) {
-                    if (!loopActive || audioPlayer == null && i > 1) break // 首轮不检查，后续被 stop 则退出
+                    if (audioStopped) break
                     val player = MediaPlayer().apply {
                         setDataSource(getApplication<Application>(), uri)
                         prepare()
                         start()
                     }
+                    // 如果在 prepare/start 过程中被 stop，立即释放并退出
+                    if (audioStopped) {
+                        player.release()
+                        break
+                    }
                     synchronized(this@CountdownViewModel) {
-                        if (audioPlayer != null) { // 被外部 stopAudio 中断
-                            player.release()
-                            break
-                        }
                         audioPlayer = player
                     }
                     // 等待播放完成
@@ -383,6 +386,7 @@ class CountdownViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** 停止音频播报并释放资源 */
     private fun stopAudio() {
+        audioStopped = true
         synchronized(this@CountdownViewModel) {
             try {
                 audioPlayer?.stop()
