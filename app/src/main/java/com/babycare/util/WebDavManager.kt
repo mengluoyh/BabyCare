@@ -22,22 +22,18 @@ object WebDavManager {
 
     private const val TIMEOUT = 15000
     private const val INDEX_FILE = "babycare_index.json"
-    private const val BACKUP_DIR = Constants.WEBDAV_DIR
 
-    /** 上传备份到 WebDAV（自动创建包名目录） */
+    /** 上传备份到 WebDAV（文件直接存放在服务器根目录，以 babycare_backup_ 前缀命名） */
     suspend fun upload(context: Context): Result<String> = withContext(Dispatchers.IO) {
         try {
             val config = loadConfig(context) ?: return@withContext Result.failure(Exception("未配置 WebDAV"))
             if (config.url.isBlank()) return@withContext Result.failure(Exception("WebDAV 地址为空"))
 
-            // 确保远程备份目录存在
-            ensureDir(config, BACKUP_DIR)
-
             val data = fetchAllData()
             val json = Gson().toJson(data)
             val filename = "babycare_backup_${DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now())}.json"
             val baseUrl = config.url.trimEnd('/')
-            val targetUrl = "$baseUrl/$BACKUP_DIR/$filename"
+            val targetUrl = "$baseUrl/$filename"
 
             // 上传备份文件
             val conn = URL(targetUrl).openConnection() as HttpURLConnection
@@ -59,7 +55,7 @@ object WebDavManager {
             // 更新远程索引文件（方便跨设备恢复）
             updateRemoteIndex(config, baseUrl, filename)
 
-            Result.success("WebDAV 上传成功: $BACKUP_DIR/$filename")
+            Result.success("WebDAV 上传成功: $filename")
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -67,7 +63,7 @@ object WebDavManager {
 
     /** 更新远程索引文件：追加新文件名 */
     private fun updateRemoteIndex(config: WebDavConfig, baseUrl: String, newFilename: String) {
-        val indexUrl = "$baseUrl/$BACKUP_DIR/$INDEX_FILE"
+        val indexUrl = "$baseUrl/$INDEX_FILE"
         // 读取已有索引
         val existing = mutableListOf<String>()
         try {
@@ -120,7 +116,7 @@ object WebDavManager {
             }
 
             // 下载最新备份
-            val downloadUrl = "$baseUrl/$BACKUP_DIR/${files.first()}"
+            val downloadUrl = "$baseUrl/${files.first()}"
             val getConn = URL(downloadUrl).openConnection() as HttpURLConnection
             getConn.requestMethod = "GET"
             getConn.connectTimeout = TIMEOUT
@@ -200,88 +196,6 @@ object WebDavManager {
         val password: String
     )
 
-    // ═══════════════════ 内部方法 ═══════════════════
-
-    /** 在 WebDAV 服务器上创建目录（优先 MKCOL，不支持时用 PUT 临时文件变相创建） */
-    private fun ensureDir(config: WebDavConfig, dir: String) {
-        val baseUrl = config.url.trimEnd('/')
-        val parts = dir.split("/")
-        var current = baseUrl
-        for (part in parts) {
-            current += "/$part"
-            // 先 GET 检查是否已存在（兼容不支持 PROPFIND 的服务器）
-            if (checkDirExists(config, current)) continue
-
-            // 尝试 MKCOL（标准 WebDAV 建目录）
-            if (mkCol(config, current)) continue
-
-            // MKCOL 不支持 → PUT 临时文件变相创建目录
-            if (mkdirViaPut(config, current)) continue
-
-            throw Exception("创建目录 $current 失败: 服务器不支持 MKCOL 且 PUT 临时文件也失败")
-        }
-    }
-
-    /** GET 请求检查目录是否存在（返回 200/301/302 视为存在） */
-    private fun checkDirExists(config: WebDavConfig, path: String): Boolean {
-        return try {
-            val conn = URL(path + "/").openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connectTimeout = TIMEOUT
-            conn.readTimeout = TIMEOUT
-            conn.setRequestProperty("Authorization", basicAuth(config))
-            conn.instanceFollowRedirects = false
-            conn.responseCode in 200..299 || conn.responseCode in 300..399
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    /** 执行 MKCOL，成功返回 true */
-    private fun mkCol(config: WebDavConfig, path: String): Boolean {
-        return try {
-            val conn = URL(path + "/").openConnection() as HttpURLConnection
-            conn.requestMethod = "MKCOL"
-            conn.connectTimeout = TIMEOUT
-            conn.readTimeout = TIMEOUT
-            conn.setRequestProperty("Authorization", basicAuth(config))
-            val code = conn.responseCode
-            // 201 Created / 405(已存在) / 409(已存在) / 3xx(重定向) 都视为成功
-            code in 200..299 || code == 405 || code == 409 || code in 300..399
-        } catch (_: Exception) {
-            false // 不支持 MKCOL（如服务器只允许标准 HTTP 方法）
-        }
-    }
-
-    /** PUT 临时文件 + DELETE 来变相创建目录（适用于不支持 MKCOL 的服务器） */
-    private fun mkdirViaPut(config: WebDavConfig, path: String): Boolean {
-        val tempFile = path + "/.mkdir_temp_babycare"
-        return try {
-            // PUT 空内容创建临时文件 → 服务器自动创建父目录
-            val putConn = URL(tempFile).openConnection() as HttpURLConnection
-            putConn.requestMethod = "PUT"
-            putConn.doOutput = true
-            putConn.connectTimeout = TIMEOUT
-            putConn.readTimeout = TIMEOUT
-            putConn.setRequestProperty("Authorization", basicAuth(config))
-            putConn.setRequestProperty("Content-Type", "application/octet-stream")
-            putConn.outputStream.use { it.write(ByteArray(0)) }
-            val putCode = putConn.responseCode
-            if (putCode !in 200..299) return false
-
-            // DELETE 临时文件，只保留目录
-            val delConn = URL(tempFile).openConnection() as HttpURLConnection
-            delConn.requestMethod = "DELETE"
-            delConn.connectTimeout = TIMEOUT
-            delConn.readTimeout = TIMEOUT
-            delConn.setRequestProperty("Authorization", basicAuth(config))
-            delConn.responseCode // 忽略结果
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
-
     private fun basicAuth(config: WebDavConfig): String {
         val raw = "${config.username}:${config.password}"
         return "Basic " + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -302,7 +216,7 @@ object WebDavManager {
 
     /** 列出 WebDAV 上所有备份文件（按文件名倒序） */
     private fun listBackupFiles(config: WebDavConfig, context: Context? = null): List<String> {
-        val listUrl = config.url.trimEnd('/') + "/" + BACKUP_DIR + "/"
+        val listUrl = config.url.trimEnd('/') + "/"
 
         // 首选 PROPFIND（标准 WebDAV），失败则降级
         val body: String? = try {
@@ -377,7 +291,7 @@ object WebDavManager {
 
         // 降级：尝试读取远程索引文件 babycare_index.json
         try {
-            val indexUrl = config.url.trimEnd('/') + "/" + BACKUP_DIR + "/" + INDEX_FILE
+            val indexUrl = config.url.trimEnd('/') + "/" + INDEX_FILE
             val idxConn = URL(indexUrl).openConnection() as HttpURLConnection
             idxConn.requestMethod = "GET"
             idxConn.connectTimeout = TIMEOUT

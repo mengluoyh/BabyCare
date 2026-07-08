@@ -26,7 +26,7 @@ import java.util.*
  */
 object SyncEngine {
 
-    private val SYNC_DIR = "${Constants.WEBDAV_DIR}/babycare_sync"
+    private val SYNC_PREFIX = "babycare_sync_"
     private const val PREF_NAME = "sync_prefs"
     private const val KEY_DEVICE_ID = "sync_device_id"
     private const val KEY_LAST_SYNC = "sync_last_sync_time"
@@ -71,9 +71,6 @@ object SyncEngine {
             val lastSync = getLastSyncTime(context)
             val now = System.currentTimeMillis()
             val errors = mutableListOf<String>()
-
-            // 确保远程 sync 目录存在（幂等）
-            ensureSyncDir(config)
 
             // 1. 推送本地增量（带重试）
             val pushed = retryOnFailure(MAX_RETRIES) {
@@ -129,9 +126,9 @@ object SyncEngine {
             changes = changes
         )
         val json = gson.toJson(payload)
-        val filename = "changes_${deviceId}_${System.currentTimeMillis()}.json"
+        val filename = "${SYNC_PREFIX}changes_${deviceId}_${System.currentTimeMillis()}.json"
         val baseUrl = config.url.trimEnd('/')
-        val targetUrl = "$baseUrl/$SYNC_DIR/$filename"
+        val targetUrl = "$baseUrl/$filename"
 
         val conn = URL(targetUrl).openConnection() as HttpURLConnection
         conn.requestMethod = "PUT"
@@ -253,9 +250,9 @@ object SyncEngine {
 
     // ── 文件操作 ──
 
-    /** 列出 WebDAV babycare_sync/ 目录下的所有变更文件 */
+    /** 列出 WebDAV 上所有变更文件（文件名以 babycare_sync_ 开头） */
     private fun listChangeFiles(config: WebDavConfig): List<String> {
-        val listUrl = config.url.trimEnd('/') + "/$SYNC_DIR/"
+        val listUrl = config.url.trimEnd('/') + "/"
         val files = mutableListOf<String>()
 
         // 尝试 PROPFIND
@@ -273,7 +270,7 @@ object SyncEngine {
                     var href = m.groupValues[1].trim()
                     if (href.startsWith(listUrl)) href = href.removePrefix(listUrl)
                     href = href.trim('/')
-                    if (href.startsWith("changes_") && href.endsWith(".json")) {
+                    if (href.startsWith(SYNC_PREFIX) && href.endsWith(".json")) {
                         files.add(href)
                     }
                 }
@@ -291,13 +288,13 @@ object SyncEngine {
             if (conn.responseCode in 200..299) {
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
                 // 方式1：正则匹配文件名
-                val regex = Regex("changes_[a-z0-9]+_\\d+\\.json")
+                val regex = Regex("${SYNC_PREFIX}changes_[a-z0-9]+_\\d+\\.json")
                 for (m in regex.findAll(text)) files.add(m.value)
                 // 方式2：逐行解析
                 if (files.isEmpty()) {
                     text.lines().forEach { line ->
                         val name = line.trim()
-                        if (name.startsWith("changes_") && name.endsWith(".json")) {
+                        if (name.startsWith(SYNC_PREFIX) && name.endsWith(".json")) {
                             files.add(name)
                         }
                     }
@@ -310,7 +307,7 @@ object SyncEngine {
 
     /** 从 WebDAV 下载文件内容 */
     private fun httpGetFile(config: WebDavConfig, file: String): String? {
-        val url = config.url.trimEnd('/') + "/$SYNC_DIR/$file"
+        val url = config.url.trimEnd('/') + "/$file"
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = TIMEOUT
@@ -324,7 +321,7 @@ object SyncEngine {
     /** 从 WebDAV 删除已处理的文件 */
     private fun deleteRemoteFile(config: WebDavConfig, file: String) {
         try {
-            val url = config.url.trimEnd('/') + "/$SYNC_DIR/$file"
+            val url = config.url.trimEnd('/') + "/$file"
             val conn = URL(url).openConnection() as HttpURLConnection
             conn.requestMethod = "DELETE"
             conn.connectTimeout = TIMEOUT
@@ -336,79 +333,6 @@ object SyncEngine {
 
     // ── 工具方法 ──
 
-    /** 在 WebDAV 服务器上创建 sync 目录（优先 MKCOL，不支持时用 PUT 临时文件变相创建） */
-    private fun ensureSyncDir(config: WebDavConfig) {
-        val baseUrl = config.url.trimEnd('/')
-        val parts = SYNC_DIR.split("/")
-        var current = baseUrl
-        for (part in parts) {
-            current += "/$part"
-            // 先 GET 检查是否已存在（兼容不支持 PROPFIND 的服务器）
-            if (checkDirExists(config, current)) continue
-            // 尝试 MKCOL
-            if (mkCol(config, current)) continue
-            // MKCOL 不支持 → PUT 临时文件变相创建
-            if (mkdirViaPut(config, current)) continue
-            throw Exception("创建目录 $current 失败: 服务器不支持 MKCOL 且 PUT 临时文件也失败")
-        }
-    }
-
-    /** GET 请求检查目录是否存在 */
-    private fun checkDirExists(config: WebDavConfig, path: String): Boolean {
-        return try {
-            val conn = URL(path + "/").openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connectTimeout = TIMEOUT
-            conn.readTimeout = TIMEOUT
-            conn.setRequestProperty("Authorization", basicAuth(config))
-            conn.instanceFollowRedirects = false
-            conn.responseCode in 200..299 || conn.responseCode in 300..399
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    /** 执行 MKCOL，成功返回 true */
-    private fun mkCol(config: WebDavConfig, path: String): Boolean {
-        return try {
-            val conn = URL(path + "/").openConnection() as HttpURLConnection
-            conn.requestMethod = "MKCOL"
-            conn.connectTimeout = TIMEOUT
-            conn.readTimeout = TIMEOUT
-            conn.setRequestProperty("Authorization", basicAuth(config))
-            val code = conn.responseCode
-            code in 200..299 || code == 405 || code == 409 || code in 300..399
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    /** PUT 临时文件 + DELETE 来变相创建目录 */
-    private fun mkdirViaPut(config: WebDavConfig, path: String): Boolean {
-        val tempFile = path + "/.mkdir_temp_babycare"
-        return try {
-            val putConn = URL(tempFile).openConnection() as HttpURLConnection
-            putConn.requestMethod = "PUT"
-            putConn.doOutput = true
-            putConn.connectTimeout = TIMEOUT
-            putConn.readTimeout = TIMEOUT
-            putConn.setRequestProperty("Authorization", basicAuth(config))
-            putConn.setRequestProperty("Content-Type", "application/octet-stream")
-            putConn.outputStream.use { it.write(ByteArray(0)) }
-            val putCode = putConn.responseCode
-            if (putCode !in 200..299) return false
-            val delConn = URL(tempFile).openConnection() as HttpURLConnection
-            delConn.requestMethod = "DELETE"
-            delConn.connectTimeout = TIMEOUT
-            delConn.readTimeout = TIMEOUT
-            delConn.setRequestProperty("Authorization", basicAuth(config))
-            delConn.responseCode
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
-
     private fun basicAuth(config: WebDavConfig): String {
         val raw = "${config.username}:${config.password}"
         return "Basic " + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -416,13 +340,13 @@ object SyncEngine {
 
     /** 从文件名提取 deviceId */
     private fun extractDeviceId(filename: String): String {
-        // changes_XXXX_1234567890.json
-        return filename.removePrefix("changes_").substringBeforeLast("_")
+        // babycare_sync_changes_XXXX_1234567890.json
+        return filename.removePrefix("${SYNC_PREFIX}changes_").substringBeforeLast("_")
     }
 
     /** 从文件名提取时间戳 */
     private fun extractTimestamp(filename: String): Long? {
-        return filename.removePrefix("changes_").substringAfterLast("_").removeSuffix(".json").toLongOrNull()
+        return filename.removePrefix("${SYNC_PREFIX}changes_").substringAfterLast("_").removeSuffix(".json").toLongOrNull()
     }
 
     /** 统计变更总数 */

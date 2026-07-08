@@ -155,8 +155,18 @@ class TimerFragment : Fragment() {
             }
         }
 
-        // 主动触发配方奶的 listener，确保 volume 字段初始化正确
-        binding.rbFormula.isChecked = true
+        // 根据当前选中的喂养类型初始化奶量输入框状态（而非依赖 listener 触发）
+        val currentFeedType = when {
+            binding.rbBreast.isChecked -> Constants.FEED_BREAST
+            binding.rbBottleBreast.isChecked -> Constants.FEED_BOTTLE_BREAST
+            else -> Constants.FEED_FORMULA
+        }
+        binding.etVolume.isEnabled = Constants.needsVolume(currentFeedType)
+        when (currentFeedType) {
+            Constants.FEED_BREAST -> binding.etVolume.text?.clear()
+            Constants.FEED_BOTTLE_BREAST -> binding.etVolume.hint = "瓶喂母乳量 (ml)"
+            Constants.FEED_FORMULA -> binding.etVolume.hint = "配方奶量 (ml)"
+        }
 
         binding.btnSaveFormula.setOnClickListener {
             val text = binding.etCustomFormula.text.toString()
